@@ -16,6 +16,10 @@ import { FraudcheckerModule } from './fraudchecker/fraudchecker.module';
 // removed: import { DeliveryaddressModule } from './deliveryaddress/deliveryaddress.module';
 import { CartproductsModule } from './cartproducts/cartproducts.module';
 import { BannerModule } from './banner/banner.module';
+import { PromocodeModule } from './promocode/promocode.module';
+import { SettingModule } from './setting/setting.module';
+import { HelpModule } from './help/help.module';
+import { SystemuserModule } from './systemuser/systemuser.module';
 import * as nodemailer from 'nodemailer';
 
 @Global()
@@ -58,6 +62,14 @@ import * as nodemailer from 'nodemailer';
     CartproductsModule,
 
     BannerModule,
+
+    PromocodeModule,
+
+    SettingModule,
+
+    HelpModule,
+
+    SystemuserModule,
     
   ],
   controllers: [AppController],
