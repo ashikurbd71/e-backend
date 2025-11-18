@@ -16,7 +16,7 @@ export class InventoryService {
     private readonly productRepo: Repository<ProductEntity>,
     @InjectRepository(OrdersitemEntity)
     private readonly ordersitemRepo: Repository<OrdersitemEntity>,
-  ) {}
+  ) { }
   async create(createInventoryDto: CreateInventoryDto) {
     const product = await this.productRepo.findOne({
       where: { id: createInventoryDto.productId },
@@ -63,6 +63,13 @@ export class InventoryService {
       inventory.product = product;
     }
 
+    // Merge newStock with current stock when updating
+    // If newStock is provided in the update, merge it with current stock
+    if (typeof updateInventoryDto.newStock === 'number') {
+      inventory.stock = Number(inventory.stock || 0) + Number(updateInventoryDto.newStock);
+    }
+
+    // If stock is provided directly, set it directly (this takes precedence over newStock merge)
     if (typeof updateInventoryDto.stock === 'number') {
       inventory.stock = updateInventoryDto.stock;
     }

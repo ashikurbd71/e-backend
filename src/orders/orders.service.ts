@@ -220,10 +220,44 @@ export class OrderService {
     if (!order) throw new NotFoundException("Order not found");
     if (order.status === "cancelled") throw new BadRequestException("Order cancelled");
 
+    const wasAlreadyShipped = order.status === "shipped";
+    
     order.status = "shipped";
     if (trackingId) order.shippingTrackingId = trackingId;
     if (provider) order.shippingProvider = provider;
     await this.orderRepo.save(order);
+
+    // Only process inventory updates if order was not already shipped (to prevent duplicate processing)
+    if (!wasAlreadyShipped) {
+      const LOW_STOCK_THRESHOLD = +(process.env.LOW_STOCK_THRESHOLD ?? 5);
+
+      // When order status becomes "Shipped": deduct stock, increase sold, add income
+      for (const it of order.items) {
+        const inv = await this.inventoryRepo.findOne({ 
+          where: { product: { id: it.product.id } }, 
+          relations: ["product"] 
+        });
+        if (!inv) continue;
+
+        // Deduct the ordered quantity from total stock
+        inv.stock = Math.max(0, inv.stock - it.quantity);
+
+        // Increase the sold count
+        inv.sold += it.quantity;
+
+        // Add the corresponding amount to income
+        const itemIncome = Number(it.unitPrice) * Number(it.quantity);
+        inv.totalIncome = Number(inv.totalIncome || 0) + itemIncome;
+
+        // Check low stock and notify
+        inv.isLowStock = inv.stock <= LOW_STOCK_THRESHOLD;
+        await this.inventoryRepo.save(inv);
+
+        if (inv.isLowStock) {
+          await this.sendLowStockEmail(inv);
+        }
+      }
+    }
 
     return this.findOne(id);
   }

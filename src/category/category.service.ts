@@ -35,7 +35,7 @@ const category = this.categoryRepository.create({
 
 async findAll(): Promise<CategoryEntity[]> {
   const categories = await this.categoryRepository.find({
-    where: { deletedAt: IsNull(), isActive: true }, // only non-deleted
+    where: { deletedAt: IsNull()}, // only non-deleted
     relations: ["parent", "children"],
   });
 
@@ -49,7 +49,7 @@ async findAll(): Promise<CategoryEntity[]> {
 
 async findOne(id: number): Promise<CategoryEntity> {
   const category = await this.categoryRepository.findOne({
-    where: { id, deletedAt: IsNull(), isActive: true },
+    where: { id, deletedAt: IsNull() },
     relations: ["parent", "children"],
   });
 

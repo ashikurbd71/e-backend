@@ -11,7 +11,7 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
-  ) {}
+  ) { }
 
   async create(createUserDto: CreateUserDto): Promise<User> {
     const existing = await this.userRepo.findOne({ where: { email: createUserDto.email } });
@@ -98,10 +98,25 @@ export class UsersService {
     return this.userRepo.find({ where: { name } });
   }
 
-    // Add lookup by phone number for FraudChecker
-    async findByPhone(phone: string): Promise<User> {
-        const user = await this.userRepo.findOne({ where: { phone } });
-        if (!user) throw new NotFoundException('User not found');
-        return user;
+  // Add lookup by phone number for FraudChecker
+  async findByPhone(phone: string): Promise<User> {
+    const user = await this.userRepo.findOne({ where: { phone } });
+    if (!user) throw new NotFoundException('User not found');
+    return user;
+  }
+
+  async findCustomers(filter?: { ids?: number[]; includeInactive?: boolean }): Promise<User[]> {
+    const qb = this.userRepo.createQueryBuilder('user').where('user.role = :role', { role: 'customer' });
+
+    if (!filter?.includeInactive) {
+      qb.andWhere('user.isActive = :active', { active: true });
     }
+
+    if (filter?.ids?.length) {
+      const ids = Array.from(new Set(filter.ids));
+      qb.andWhere('user.id IN (:...ids)', { ids });
+    }
+
+    return qb.orderBy('user.id', 'DESC').getMany();
+  }
 }

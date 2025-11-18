@@ -21,6 +21,7 @@ import { SettingModule } from './setting/setting.module';
 import { HelpModule } from './help/help.module';
 import { SystemuserModule } from './systemuser/systemuser.module';
 import * as nodemailer from 'nodemailer';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Global()
 @Module({
@@ -70,6 +71,7 @@ import * as nodemailer from 'nodemailer';
     HelpModule,
 
     SystemuserModule,
+    NotificationsModule,
     
   ],
   controllers: [AppController],

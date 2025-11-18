@@ -37,14 +37,14 @@ export class ProductService {
 
   async findAll(options?: { relations?: string[] }): Promise<ProductEntity[]> {
     return this.productRepository.find({
-      where: { deletedAt: IsNull(), isActive: true },
+      where: { deletedAt: IsNull() },
       relations: ["category"],
     });
   }
 
   async findOne(id: number, options?: { relations?: string[] }): Promise<ProductEntity> {
     const product = await this.productRepository.findOne({
-      where: { id, deletedAt: IsNull(), isActive: true },
+      where: { id, deletedAt: IsNull() },
       relations: ["category"],
     });
     if (!product) throw new NotFoundException("Product not found");

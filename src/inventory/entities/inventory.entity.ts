@@ -13,6 +13,9 @@ export class InventoryEntity {
   stock: number;
 
   @Column("int", { default: 0 })
+  newStock: number;
+
+  @Column("int", { default: 0 })
   sold: number;
 
   @Column("decimal", { precision: 12, scale: 2, default: 0 })
