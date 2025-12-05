@@ -10,10 +10,14 @@ export class PromocodeService {
   constructor(
     @InjectRepository(PromocodeEntity)
     private readonly promoRepo: Repository<PromocodeEntity>,
-  ) {}
+  ) { }
 
-  async create(dto: CreatePromocodeDto) {
-    const exists = await this.promoRepo.findOne({ where: { code: dto.code } });
+  async create(dto: CreatePromocodeDto, companyId: string) {
+    if (!companyId) {
+      throw new NotFoundException('CompanyId is required');
+    }
+
+    const exists = await this.promoRepo.findOne({ where: { code: dto.code, companyId } });
     if (exists) throw new BadRequestException('Promocode already exists');
 
     const startsAt = dto.startsAt ? new Date(dto.startsAt) : undefined;
@@ -34,26 +38,30 @@ export class PromocodeService {
       startsAt,
       expiresAt,
       isActive: dto.isActive ?? true,
+      companyId: companyId,
     });
 
     return this.promoRepo.save(promo);
   }
 
-  async findAll() {
-    return this.promoRepo.find({ order: { id: 'DESC' } });
+  async findAll(companyId: string) {
+    return this.promoRepo.find({
+      where: { companyId },
+      order: { id: 'DESC' },
+    });
   }
 
-  async findOne(id: number) {
-    const promo = await this.promoRepo.findOne({ where: { id } });
+  async findOne(id: number, companyId: string) {
+    const promo = await this.promoRepo.findOne({ where: { id, companyId } });
     if (!promo) throw new NotFoundException('Promocode not found');
     return promo;
   }
 
-  async update(id: number, dto: UpdatePromocodeDto) {
-    const promo = await this.findOne(id);
+  async update(id: number, dto: UpdatePromocodeDto, companyId: string) {
+    const promo = await this.findOne(id, companyId);
 
     if (dto.code && dto.code !== promo.code) {
-      const exists = await this.promoRepo.findOne({ where: { code: dto.code } });
+      const exists = await this.promoRepo.findOne({ where: { code: dto.code, companyId } });
       if (exists) throw new BadRequestException('Promocode already exists');
       promo.code = dto.code;
     }
@@ -73,16 +81,20 @@ export class PromocodeService {
 
     if (dto.isActive !== undefined) promo.isActive = dto.isActive as any;
 
+    // Ensure companyId is preserved
+    promo.companyId = companyId;
+
     return this.promoRepo.save(promo);
   }
 
-  async remove(id: number) {
+  async remove(id: number, companyId: string) {
+    const promo = await this.findOne(id, companyId);
     const res = await this.promoRepo.softDelete(id);
     if (!res.affected) throw new NotFoundException('Promocode not found');
   }
 
-  async toggleActive(id: number, active: boolean) {
-    const promo = await this.findOne(id);
+  async toggleActive(id: number, active: boolean, companyId: string) {
+    const promo = await this.findOne(id, companyId);
     promo.isActive = active;
     return this.promoRepo.save(promo);
   }

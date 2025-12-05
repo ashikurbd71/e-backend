@@ -20,6 +20,9 @@ export class Setting {
   @Column({ nullable: true })
   location?: string;
 
+  @Column({ nullable: false })
+  companyId: string;
+
   @CreateDateColumn()
   createdAt: Date;
 

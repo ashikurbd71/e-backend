@@ -40,6 +40,9 @@ export class PromocodeEntity {
   @Column({ default: true })
   isActive: boolean;
 
+  @Column({ nullable: false })
+  companyId: string;
+
   @CreateDateColumn()
   createdAt: Date;
 

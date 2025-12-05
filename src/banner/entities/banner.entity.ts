@@ -33,6 +33,9 @@ export class BannerEntity {
   @Column({ default: 0 })
   order: number;
 
+  @Column({ nullable: false })
+  companyId: string;
+
   @CreateDateColumn()
   createdAt: Date;
 

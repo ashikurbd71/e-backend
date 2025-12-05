@@ -16,8 +16,10 @@ export class ProductService {
     private categoryRepository: Repository<CategoryEntity>
   ) {}
 
-  async create(createDto: CreateProductDto): Promise<ProductEntity> {
-    const category = await this.categoryRepository.findOne({ where: { id: createDto.categoryId } });
+  async create(createDto: CreateProductDto, companyId: string): Promise<ProductEntity> {
+    const category = await this.categoryRepository.findOne({ 
+      where: { id: createDto.categoryId, companyId } 
+    });
     if (!category) throw new NotFoundException("Category not found");
 
     const product = this.productRepository.create({
@@ -30,29 +32,30 @@ export class ProductService {
       description: createDto.description,
       images: createDto.images,
       thumbnail: createDto.thumbnail,
+      companyId,
     });
 
     return this.productRepository.save(product);
   }
 
-  async findAll(options?: { relations?: string[] }): Promise<ProductEntity[]> {
+  async findAll(companyId: string, options?: { relations?: string[] }): Promise<ProductEntity[]> {
     return this.productRepository.find({
-      where: { deletedAt: IsNull() },
+      where: { deletedAt: IsNull(), companyId },
       relations: ["category"],
     });
   }
 
-  async findOne(id: number, options?: { relations?: string[] }): Promise<ProductEntity> {
+  async findOne(id: number, companyId: string, options?: { relations?: string[] }): Promise<ProductEntity> {
     const product = await this.productRepository.findOne({
-      where: { id, deletedAt: IsNull() },
+      where: { id, deletedAt: IsNull(), companyId },
       relations: ["category"],
     });
     if (!product) throw new NotFoundException("Product not found");
     return product;
   }
 
-  async update(id: number, updateDto: UpdateProductDto): Promise<ProductEntity> {
-    const product = await this.findOne(id);
+  async update(id: number, updateDto: UpdateProductDto, companyId: string): Promise<ProductEntity> {
+    const product = await this.findOne(id, companyId);
 
     if (updateDto.name) product.name = updateDto.name;
     if (updateDto.sku) product.sku = updateDto.sku;
@@ -65,7 +68,9 @@ export class ProductService {
     if (updateDto.thumbnail !== undefined) product.thumbnail = updateDto.thumbnail;
 
     if (updateDto.categoryId) {
-      const category = await this.categoryRepository.findOne({ where: { id: updateDto.categoryId } });
+      const category = await this.categoryRepository.findOne({ 
+        where: { id: updateDto.categoryId, companyId } 
+      });
       if (!category) throw new NotFoundException("Category not found");
       product.category = category;
     }
@@ -73,13 +78,13 @@ export class ProductService {
     return this.productRepository.save(product);
   }
 
-  async softDelete(id: number): Promise<void> {
-    const product = await this.findOne(id);
+  async softDelete(id: number, companyId: string): Promise<void> {
+    const product = await this.findOne(id, companyId);
     await this.productRepository.softRemove(product);
   }
 
-  async toggleActive(id: number, active: boolean): Promise<ProductEntity> {
-    const product = await this.findOne(id);
+  async toggleActive(id: number, active: boolean, companyId: string): Promise<ProductEntity> {
+    const product = await this.findOne(id, companyId);
     product.isActive = active;
     return this.productRepository.save(product);
   }

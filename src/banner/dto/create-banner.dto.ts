@@ -27,4 +27,8 @@ export class CreateBannerDto {
   @IsOptional()
   @IsInt()
   order?: number;
+
+  @IsOptional()
+  @IsString()
+  companyId?: string;
 }

@@ -17,6 +17,9 @@ export class CategoryEntity {
   @Column({ nullable: true })
   photo: string;
 
+  @Column({ nullable: false })
+  companyId: string;
+
   @ManyToOne(() => CategoryEntity, (cat) => cat.children, { nullable: true })
   parent: CategoryEntity;
 

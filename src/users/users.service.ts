@@ -13,8 +13,10 @@ export class UsersService {
     private readonly userRepo: Repository<User>,
   ) { }
 
-  async create(createUserDto: CreateUserDto): Promise<User> {
-    const existing = await this.userRepo.findOne({ where: { email: createUserDto.email } });
+  async create(createUserDto: CreateUserDto, companyId: string): Promise<User> {
+    const existing = await this.userRepo.findOne({ 
+      where: { email: createUserDto.email, companyId } 
+    });
     if (existing) throw new BadRequestException('Email already exists');
 
     const user = this.userRepo.create({
@@ -24,27 +26,33 @@ export class UsersService {
       address: createUserDto.address,
       role: (createUserDto as any).role ?? 'customer',
       isActive: (createUserDto as any).isActive ?? true,
+      companyId,
     });
     return this.userRepo.save(user);
   }
 
-  async findAll(): Promise<User[]> {
-    return this.userRepo.find({ order: { id: 'DESC' } });
+  async findAll(companyId: string): Promise<User[]> {
+    return this.userRepo.find({ 
+      where: { companyId },
+      order: { id: 'DESC' } 
+    });
   }
 
-  async findOne(id: number): Promise<User> {
-    const user = await this.userRepo.findOne({ where: { id } });
+  async findOne(id: number, companyId: string): Promise<User> {
+    const user = await this.userRepo.findOne({ where: { id, companyId } });
     if (!user) throw new NotFoundException('User not found');
     return user;
   }
 
-  async update(id: number, updateUserDto: UpdateUserDto): Promise<User> {
-    const user = await this.findOne(id);
+  async update(id: number, updateUserDto: UpdateUserDto, companyId: string): Promise<User> {
+    const user = await this.findOne(id, companyId);
 
     const dto: Partial<UpdateUserDto> = updateUserDto ?? {};
 
     if (dto.email && dto.email !== user.email) {
-      const exists = await this.userRepo.findOne({ where: { email: dto.email } });
+      const exists = await this.userRepo.findOne({ 
+        where: { email: dto.email, companyId } 
+      });
       if (exists) throw new BadRequestException('Email already exists');
     }
 
@@ -60,8 +68,8 @@ export class UsersService {
   }
 
   // Add ban/unban methods
-  async ban(id: number, reason?: string): Promise<User> {
-    const user = await this.findOne(id);
+  async ban(id: number, companyId: string, reason?: string): Promise<User> {
+    const user = await this.findOne(id, companyId);
     if (user.isBanned) throw new BadRequestException('User already banned');
 
     user.isBanned = true;
@@ -71,8 +79,8 @@ export class UsersService {
     return this.userRepo.save(user);
   }
 
-  async unban(id: number): Promise<User> {
-    const user = await this.findOne(id);
+  async unban(id: number, companyId: string): Promise<User> {
+    const user = await this.findOne(id, companyId);
     if (!user.isBanned) throw new BadRequestException('User is not banned');
 
     user.isBanned = false;
@@ -82,31 +90,34 @@ export class UsersService {
     return this.userRepo.save(user);
   }
 
-  async remove(id: number): Promise<void> {
+  async remove(id: number, companyId: string): Promise<void> {
+    const user = await this.findOne(id, companyId);
     const result = await this.userRepo.softDelete(id);
     if (!result.affected) throw new NotFoundException('User not found');
   }
 
   // Add lookups for FraudChecker
-  async findByEmail(email: string): Promise<User> {
-    const user = await this.userRepo.findOne({ where: { email } });
+  async findByEmail(email: string, companyId: string): Promise<User> {
+    const user = await this.userRepo.findOne({ where: { email, companyId } });
     if (!user) throw new NotFoundException('User not found');
     return user;
   }
 
-  async findByName(name: string): Promise<User[]> {
-    return this.userRepo.find({ where: { name } });
+  async findByName(name: string, companyId: string): Promise<User[]> {
+    return this.userRepo.find({ where: { name, companyId } });
   }
 
   // Add lookup by phone number for FraudChecker
-  async findByPhone(phone: string): Promise<User> {
-    const user = await this.userRepo.findOne({ where: { phone } });
+  async findByPhone(phone: string, companyId: string): Promise<User> {
+    const user = await this.userRepo.findOne({ where: { phone, companyId } });
     if (!user) throw new NotFoundException('User not found');
     return user;
   }
 
-  async findCustomers(filter?: { ids?: number[]; includeInactive?: boolean }): Promise<User[]> {
-    const qb = this.userRepo.createQueryBuilder('user').where('user.role = :role', { role: 'customer' });
+  async findCustomers(companyId: string, filter?: { ids?: number[]; includeInactive?: boolean }): Promise<User[]> {
+    const qb = this.userRepo.createQueryBuilder('user')
+      .where('user.role = :role', { role: 'customer' })
+      .andWhere('user.companyId = :companyId', { companyId });
 
     if (!filter?.includeInactive) {
       qb.andWhere('user.isActive = :active', { active: true });

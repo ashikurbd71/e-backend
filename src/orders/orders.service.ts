@@ -27,7 +27,7 @@ export class OrderService {
   ) {}
 
   // Create order: will check stock and reserve (atomic transaction)
-  async create(createDto: CreateOrderDto) {
+  async create(createDto: CreateOrderDto, companyId: string) {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -35,7 +35,7 @@ export class OrderService {
     try {
       let customer: User | null = null;
       if (typeof createDto.customerId === "number") {
-        customer = await this.userRepo.findOneBy({ id: createDto.customerId });
+        customer = await this.userRepo.findOneBy({ id: createDto.customerId, companyId });
         if (!customer) throw new NotFoundException("Customer not found");
       }
 
@@ -46,6 +46,7 @@ export class OrderService {
       order.customerAddress = customer?.address ?? createDto.customerAddress ?? "";
       order.status = "pending";
       order.paymentMethod = createDto.paymentMethod ?? "DIRECT";
+      order.companyId = companyId;
 
 
 
@@ -55,10 +56,14 @@ export class OrderService {
       let total = 0;
 
       for (const it of createDto.items) {
-        const product = await this.productRepo.findOne({ where: { id: it.productId } });
+        const product = await this.productRepo.findOne({ 
+          where: { id: it.productId, companyId } 
+        });
         if (!product) throw new NotFoundException(`Product ${it.productId} not found`);
 
-        const inventory = await this.inventoryRepo.findOne({ where: { product: { id: product.id } } });
+        const inventory = await this.inventoryRepo.findOne({ 
+          where: { product: { id: product.id }, companyId } 
+        });
         if (!inventory || inventory.stock < it.quantity) throw new BadRequestException(`Insufficient stock for product ${product.id}`);
 
         const oi = new OrdersitemEntity();
@@ -67,6 +72,7 @@ export class OrderService {
         oi.quantity = it.quantity;
         oi.unitPrice = +product.price;
         oi.totalPrice = +product.price * it.quantity;
+        oi.companyId = companyId;
 
         total += oi.totalPrice;
         items.push(oi);
@@ -79,7 +85,7 @@ export class OrderService {
       await queryRunner.commitTransaction();
 
       const fullOrder = await this.orderRepo.findOne({
-        where: { id: savedOrder.id },
+        where: { id: savedOrder.id, companyId },
         relations: ["items", "items.product", "customer"],
       });
 
@@ -106,19 +112,25 @@ export class OrderService {
     }
   }
 
-  async findAll() {
-    return this.orderRepo.find({ relations: ["items", "items.product", "customer"] });
+  async findAll(companyId: string) {
+    return this.orderRepo.find({ 
+      where: { companyId },
+      relations: ["items", "items.product", "customer"] 
+    });
   }
 
-  async findOne(id: number) {
-    const o = await this.orderRepo.findOne({ where: { id }, relations: ["items", "items.product", "customer"] });
+  async findOne(id: number, companyId: string) {
+    const o = await this.orderRepo.findOne({ 
+      where: { id, companyId }, 
+      relations: ["items", "items.product", "customer"] 
+    });
     if (!o) throw new NotFoundException("Order not found");
     return o;
   }
 
   // mark as completed (paid & completed) => update inventory.sold
-  async completeOrder(id: number, paymentRef?: string) {
-    const order = await this.findOne(id);
+  async completeOrder(id: number, companyId: string, paymentRef?: string) {
+    const order = await this.findOne(id, companyId);
     if (!order) throw new NotFoundException("Order not found");
     if (order.status === "cancelled") throw new BadRequestException("Order cancelled");
 
@@ -129,7 +141,10 @@ export class OrderService {
 
     // increment sold counters in inventory
     for (const it of order.items) {
-      const inv = await this.inventoryRepo.findOne({ where: { product: { id: it.product.id } }, relations: ["product"] });
+      const inv = await this.inventoryRepo.findOne({ 
+        where: { product: { id: it.product.id }, companyId }, 
+        relations: ["product"] 
+      });
       if (inv) {
         inv.sold += it.quantity;
         // stock already decreased on create (reservation)
@@ -137,19 +152,21 @@ export class OrderService {
       }
     }
 
-    return this.findOne(id);
+    return this.findOne(id, companyId);
   }
 
   // cancel: restore stock
-  async cancelOrder(id: number) {
-    const order = await this.findOne(id);
+  async cancelOrder(id: number, companyId: string) {
+    const order = await this.findOne(id, companyId);
     if (order.status === "cancelled") throw new BadRequestException("Already cancelled");
 
     order.status = "cancelled";
     await this.orderRepo.save(order);
 
     for (const it of order.items) {
-      const inv = await this.inventoryRepo.findOne({ where: { product: { id: it.product.id } } });
+      const inv = await this.inventoryRepo.findOne({ 
+        where: { product: { id: it.product.id }, companyId } 
+      });
       if (inv) {
         inv.stock += it.quantity;
         // optionally reduce sold if already counted
@@ -159,7 +176,9 @@ export class OrderService {
 
     // increment user's cancelledOrdersCount if customer exists
     if (order.customer?.id) {
-      const user = await this.userRepo.findOne({ where: { id: order.customer.id } });
+      const user = await this.userRepo.findOne({ 
+        where: { id: order.customer.id, companyId } 
+      });
       if (user) {
         user.cancelledOrdersCount = (user.cancelledOrdersCount ?? 0) + 1;
         await this.userRepo.save(user);
@@ -169,8 +188,8 @@ export class OrderService {
     return { message: "Order cancelled" };
   }
 
-  async deliverOrder(id: number) {
-    const order = await this.findOne(id);
+  async deliverOrder(id: number, companyId: string) {
+    const order = await this.findOne(id, companyId);
     if (!order) throw new NotFoundException("Order not found");
     if (order.status === "cancelled") throw new BadRequestException("Order cancelled");
 
@@ -180,7 +199,10 @@ export class OrderService {
     const LOW_STOCK_THRESHOLD = +(process.env.LOW_STOCK_THRESHOLD ?? 5);
 
     for (const it of order.items) {
-      const inv = await this.inventoryRepo.findOne({ where: { product: { id: it.product.id } }, relations: ["product"] });
+      const inv = await this.inventoryRepo.findOne({ 
+        where: { product: { id: it.product.id }, companyId }, 
+        relations: ["product"] 
+      });
       if (!inv) continue;
 
       // Decrease stock on delivery
@@ -205,18 +227,20 @@ export class OrderService {
 
     // increment user's successfulOrdersCount if customer exists
     if (order.customer?.id) {
-      const user = await this.userRepo.findOne({ where: { id: order.customer.id } });
+      const user = await this.userRepo.findOne({ 
+        where: { id: order.customer.id, companyId } 
+      });
       if (user) {
         user.successfulOrdersCount = (user.successfulOrdersCount ?? 0) + 1;
         await this.userRepo.save(user);
       }
     }
 
-    return this.findOne(id);
+    return this.findOne(id, companyId);
   }
 
-  async shipOrder(id: number, trackingId?: string, provider?: string) {
-    const order = await this.findOne(id);
+  async shipOrder(id: number, companyId: string, trackingId?: string, provider?: string) {
+    const order = await this.findOne(id, companyId);
     if (!order) throw new NotFoundException("Order not found");
     if (order.status === "cancelled") throw new BadRequestException("Order cancelled");
 
@@ -234,7 +258,7 @@ export class OrderService {
       // When order status becomes "Shipped": deduct stock, increase sold, add income
       for (const it of order.items) {
         const inv = await this.inventoryRepo.findOne({ 
-          where: { product: { id: it.product.id } }, 
+          where: { product: { id: it.product.id }, companyId }, 
           relations: ["product"] 
         });
         if (!inv) continue;
@@ -259,11 +283,11 @@ export class OrderService {
       }
     }
 
-    return this.findOne(id);
+    return this.findOne(id, companyId);
   }
 
-  async refundOrder(id: number) {
-    const order = await this.findOne(id);
+  async refundOrder(id: number, companyId: string) {
+    const order = await this.findOne(id, companyId);
     if (!order) throw new NotFoundException("Order not found");
     if (order.status === "cancelled") throw new BadRequestException("Order cancelled");
 
@@ -273,7 +297,10 @@ export class OrderService {
 
     // Reverse sold/income and restock items
     for (const it of order.items) {
-        const inv = await this.inventoryRepo.findOne({ where: { product: { id: it.product.id } }, relations: ["product"] });
+        const inv = await this.inventoryRepo.findOne({ 
+          where: { product: { id: it.product.id }, companyId }, 
+          relations: ["product"] 
+        });
         if (!inv) continue;
     
         // Restock the returned quantity
@@ -287,7 +314,7 @@ export class OrderService {
         await this.inventoryRepo.save(inv);
     }
 
-    return this.findOne(id);
+    return this.findOne(id, companyId);
   }
 
   private async sendLowStockEmail(inv: InventoryEntity) {

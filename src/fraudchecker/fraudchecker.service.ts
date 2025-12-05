@@ -2,15 +2,20 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateFraudcheckerDto } from './dto/create-fraudchecker.dto';
 import { UpdateFraudcheckerDto } from './dto/update-fraudchecker.dto';
 import { UsersService } from '../users/users.service';
+import { RequestContextService } from 'src/common/services/request-context.service';
 
 @Injectable()
 export class FraudcheckerService {
 
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly requestContextService: RequestContextService,
+  ) {}
 
   // Base risk evaluation by user id
   async checkUserRisk(userId: number) {
-    const user = await this.usersService.findOne(userId);
+    const companyId = this.requestContextService.getCompanyId();
+    const user = await this.usersService.findOne(userId, companyId);
 
     const reasons: string[] = [];
     let score = 0;
@@ -53,27 +58,32 @@ export class FraudcheckerService {
 
   // New: risk evaluation by phone number
   async checkUserRiskByPhone(phone: string) {
-    const user = await this.usersService.findByPhone(phone);
+    const companyId = this.requestContextService.getCompanyId();
+    const user = await this.usersService.findByPhone(phone, companyId);
     return this.checkUserRisk(user.id);
   }
 
   async checkUserRiskByEmail(email: string) {
-    const user = await this.usersService.findByEmail(email);
+    const companyId = this.requestContextService.getCompanyId();
+    const user = await this.usersService.findByEmail(email, companyId);
     return this.checkUserRisk(user.id);
   }
 
   async checkUserRiskByName(name: string) {
-    const users = await this.usersService.findByName(name);
+    const companyId = this.requestContextService.getCompanyId();
+    const users = await this.usersService.findByName(name, companyId);
     if (!users.length) throw new NotFoundException('No users found with that name');
     const results = await Promise.all(users.map((u) => this.checkUserRisk(u.id)));
     return { count: results.length, results };
   }
 
   async flagUser(userId: number, reason?: string) {
-    return this.usersService.ban(userId, reason);
+    const companyId = this.requestContextService.getCompanyId();
+    return this.usersService.ban(userId, companyId, reason);
   }
 
   async unflagUser(userId: number) {
-    return this.usersService.unban(userId);
+    const companyId = this.requestContextService.getCompanyId();
+    return this.usersService.unban(userId, companyId);
   }
 }

@@ -20,6 +20,9 @@ export class Help {
   @Column({ type: 'varchar', default: SupportStatus.PENDING })
   status: SupportStatus;
 
+  @Column({ nullable: false })
+  companyId: string;
+
   @CreateDateColumn()
   createdAt: Date;
 

@@ -20,8 +20,11 @@ import { PromocodeModule } from './promocode/promocode.module';
 import { SettingModule } from './setting/setting.module';
 import { HelpModule } from './help/help.module';
 import { SystemuserModule } from './systemuser/systemuser.module';
+import { EarningsModule } from './earnings/earnings.module';
+import { OverviewModule } from './overview/overview.module';
 import * as nodemailer from 'nodemailer';
 import { NotificationsModule } from './notifications/notifications.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Global()
 @Module({
@@ -32,7 +35,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 
     TypeOrmModule.forRoot({
       type: 'postgres',
-      url:process.env.DATABASE_URL,
+      url: process.env.DATABASE_URL,
       synchronize: true,
       logging: true,
       ssl: {
@@ -71,8 +74,11 @@ import { NotificationsModule } from './notifications/notifications.module';
     HelpModule,
 
     SystemuserModule,
+    EarningsModule,
+    OverviewModule,
     NotificationsModule,
-    
+    DashboardModule,
+
   ],
   controllers: [AppController],
   providers: [

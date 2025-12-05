@@ -43,6 +43,9 @@ export class Order {
   @Column({ default: false })
   isPaid: boolean;
 
+  @Column({ nullable: false })
+  companyId: string;
+
   @CreateDateColumn()
   createdAt: Date;
 

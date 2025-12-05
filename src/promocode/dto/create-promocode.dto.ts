@@ -35,4 +35,8 @@ export class CreatePromocodeDto {
     @IsOptional()
     @IsBoolean()
     isActive?: boolean;
+
+    @IsOptional()
+    @IsString()
+    companyId?: string;
 }

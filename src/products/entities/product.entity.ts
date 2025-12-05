@@ -31,6 +31,9 @@ export class ProductEntity {
   @Column({ default: true })
   isActive: boolean;
 
+  @Column({ nullable: false })
+  companyId: string;
+
   @ManyToOne(() => CategoryEntity, { nullable: false })
   category: CategoryEntity;
 

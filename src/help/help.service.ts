@@ -14,37 +14,46 @@ export class HelpService {
     private readonly helpRepo: Repository<Help>,
     @Inject('MAILER_TRANSPORT')
     private readonly mailer: Transporter,
-  ) {}
+  ) { }
 
-  async create(createHelpDto: CreateHelpDto) {
+  async create(createHelpDto: CreateHelpDto, companyId: string) {
+    if (!companyId) {
+      throw new NotFoundException('CompanyId is required');
+    }
     const entity = this.helpRepo.create({
       email: createHelpDto.email,
       issue: createHelpDto.issue,
       status: createHelpDto.status ?? SupportStatus.PENDING,
+      companyId: companyId,
     });
     const saved = await this.helpRepo.save(entity);
     await this.sendSupportEmail(saved);
     return saved;
   }
 
-  async findAll() {
-    return this.helpRepo.find();
+  async findAll(companyId: string) {
+    return this.helpRepo.find({
+      where: { companyId },
+      order: { id: 'DESC' },
+    });
   }
 
-  async findOne(id: number) {
-    const entity = await this.helpRepo.findOne({ where: { id } });
+  async findOne(id: number, companyId: string) {
+    const entity = await this.helpRepo.findOne({ where: { id, companyId } });
     if (!entity) throw new NotFoundException(`Help ticket ${id} not found`);
     return entity;
   }
 
-  async update(id: number, updateHelpDto: UpdateHelpDto) {
-    const entity = await this.findOne(id);
+  async update(id: number, updateHelpDto: UpdateHelpDto, companyId: string) {
+    const entity = await this.findOne(id, companyId);
     const merged = this.helpRepo.merge(entity, updateHelpDto);
+    // Ensure companyId is preserved
+    merged.companyId = companyId;
     return this.helpRepo.save(merged);
   }
 
-  async remove(id: number) {
-    const entity = await this.findOne(id);
+  async remove(id: number, companyId: string) {
+    const entity = await this.findOne(id, companyId);
     await this.helpRepo.softRemove(entity);
     return { success: true };
   }

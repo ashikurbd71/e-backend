@@ -28,4 +28,8 @@ export class UpdateBannerDto {
   @IsOptional()
   @IsInt()
   order?: number;
+
+  @IsOptional()
+  @IsString()
+  companyId?: string;
 }

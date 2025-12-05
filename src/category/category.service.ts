@@ -13,7 +13,7 @@ export class CategoryService {
     private categoryRepository: Repository<CategoryEntity>
   ) {}
 
-  async create(createDto: CreateCategoryDto): Promise<CategoryEntity  > {
+  async create(createDto: CreateCategoryDto, companyId: string): Promise<CategoryEntity  > {
 const category = this.categoryRepository.create({
   name: createDto.name,
   slug: createDto.slug
@@ -21,11 +21,14 @@ const category = this.categoryRepository.create({
     : createDto.name.toLowerCase().replace(/\s+/g, "-"),
   isActive: createDto.isActive ?? true,
   photo: createDto.photo,
+  companyId,
 });
 
 
     if (createDto.parentId) {
-      const parent = await this.categoryRepository.findOne({ where: { id: createDto.parentId } });
+      const parent = await this.categoryRepository.findOne({ 
+        where: { id: createDto.parentId, companyId } 
+      });
       if (!parent) throw new NotFoundException("Parent category not found");
       category.parent = parent;
     }
@@ -33,9 +36,9 @@ const category = this.categoryRepository.create({
     return this.categoryRepository.save(category);
   }
 
-async findAll(): Promise<CategoryEntity[]> {
+async findAll(companyId: string): Promise<CategoryEntity[]> {
   const categories = await this.categoryRepository.find({
-    where: { deletedAt: IsNull()}, // only non-deleted
+    where: { deletedAt: IsNull(), companyId}, // only non-deleted
     relations: ["parent", "children"],
   });
 
@@ -47,9 +50,9 @@ async findAll(): Promise<CategoryEntity[]> {
 }
 
 
-async findOne(id: number): Promise<CategoryEntity> {
+async findOne(id: number, companyId: string): Promise<CategoryEntity> {
   const category = await this.categoryRepository.findOne({
-    where: { id, deletedAt: IsNull() },
+    where: { id, deletedAt: IsNull(), companyId },
     relations: ["parent", "children"],
   });
 
@@ -64,8 +67,8 @@ async findOne(id: number): Promise<CategoryEntity> {
 }
 
 
-  async update(id: number, updateDto: UpdateCategoryDto): Promise<CategoryEntity> {
-    const category = await this.findOne(id);
+  async update(id: number, updateDto: UpdateCategoryDto, companyId: string): Promise<CategoryEntity> {
+    const category = await this.findOne(id, companyId);
 
     if (updateDto.name) category.name = updateDto.name;
     if (updateDto.slug) category.slug = updateDto.slug;
@@ -73,7 +76,9 @@ async findOne(id: number): Promise<CategoryEntity> {
     if (updateDto.isActive !== undefined) category.isActive = updateDto.isActive;
 
     if (updateDto.parentId) {
-      const parent = await this.categoryRepository.findOne({ where: { id: updateDto.parentId } });
+      const parent = await this.categoryRepository.findOne({ 
+        where: { id: updateDto.parentId, companyId } 
+      });
       if (!parent) throw new NotFoundException("Parent category not found");
       if (parent.id === id) throw new BadRequestException("Category cannot be its own parent");
       category.parent = parent;
@@ -82,13 +87,13 @@ async findOne(id: number): Promise<CategoryEntity> {
     return this.categoryRepository.save(category);
   }
 
-  async softDelete(id: number): Promise<void> {
-    const category = await this.findOne(id);
+  async softDelete(id: number, companyId: string): Promise<void> {
+    const category = await this.findOne(id, companyId);
     await this.categoryRepository.softRemove(category); // Soft delete sets deletedAt timestamp
   }
 
-  async toggleActive(id: number, active?: boolean): Promise<CategoryEntity> {
-    const category = await this.findOne(id);
+  async toggleActive(id: number, active: boolean | undefined, companyId: string): Promise<CategoryEntity> {
+    const category = await this.findOne(id, companyId);
     category.isActive = active !== undefined ? active : !category.isActive;
     return this.categoryRepository.save(category);
   }

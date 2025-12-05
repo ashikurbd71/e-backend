@@ -6,6 +6,7 @@ import { Transporter } from 'nodemailer';
 import { User } from 'src/users/entities/user.entity';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
+import { RequestContextService } from 'src/common/services/request-context.service';
 
 type NotificationChannel = 'email' | 'sms';
 
@@ -16,10 +17,12 @@ export class NotificationsService {
         @Inject('MAILER_TRANSPORT')
         private readonly mailer: Transporter,
         private readonly httpService: HttpService,
+        private readonly requestContextService: RequestContextService,
     ) { }
 
     async sendEmailToCustomers(dto: BroadcastEmailDto) {
-        const recipients = (await this.usersService.findCustomers()).filter((user) => !!user.email);
+        const companyId = this.requestContextService.getCompanyId();
+        const recipients = (await this.usersService.findCustomers(companyId)).filter((user) => !!user.email);
 
         if (!recipients.length) {
             throw new NotFoundException('No customers with a valid email address were found');
@@ -43,7 +46,8 @@ export class NotificationsService {
     }
 
     async sendSmsToCustomers(dto: BroadcastSmsDto) {
-        const recipients = (await this.usersService.findCustomers()).filter((user) => !!user.phone);
+        const companyId = this.requestContextService.getCompanyId();
+        const recipients = (await this.usersService.findCustomers(companyId)).filter((user) => !!user.phone);
 
         if (!recipients.length) {
             throw new NotFoundException('No customers with a phone number were found');

@@ -1,39 +1,61 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  DeleteDateColumn,
+} from 'typeorm';
+import { FeaturePermission } from '../feature-permission.enum';
 
-export enum SystemUserRole {
-  systemOwner = 'systemOwner',
-  orderManagement = 'orderManagement',
-  productsManagement = 'productsManagement',
-  inventoryManagement = 'inventoryManagement',
-  moderator = 'moderator',
-  developer = 'developer',
-}
-
-@Entity('tbl_system_users')
-export class Systemuser {
+@Entity('system_users')
+export class SystemUser {
   @PrimaryGeneratedColumn()
   id: number;
 
   @Column()
-  companyName: string;
+  name: string;
 
   @Column({ unique: true })
   email: string;
 
-  @Column({ nullable: true })
-  phone?: string;
+  @Column({ nullable: false })
+  companyName: string;
 
-  @Column()
+  @Column({ unique: true, nullable: false })
+  companyId: string;
+
+  @Column({ nullable: true })
+  companyLogo: string;
+
+  @Column({ nullable: true })
+  phone: string;
+
+  @Column({ nullable: true })
+  branchLocation: string;
+
+  /**
+   * Stored as a salted hash – never return this field from APIs.
+   */
+  @Column({ nullable: true })
   passwordHash: string;
 
-  @Column()
+  @Column({ nullable: true })
   passwordSalt: string;
 
-  @Column({ type: 'enum', enum: SystemUserRole, default: SystemUserRole.systemOwner })
-  role: SystemUserRole;
+  @Column('simple-array')
+  permissions: FeaturePermission[];
 
   @Column({ default: true })
   isActive: boolean;
+
+  @Column('json', { nullable: true })
+  paymentInfo: {
+    paymentstatus?: string;
+    paymentmethod?: string;
+    amount?: number;
+    packagename?: string;
+  };
 
   @CreateDateColumn()
   createdAt: Date;

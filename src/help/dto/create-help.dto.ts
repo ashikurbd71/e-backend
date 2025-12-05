@@ -11,4 +11,8 @@ export class CreateHelpDto {
   @IsOptional()
   @IsEnum(SupportStatus)
   status?: SupportStatus;
+
+  @IsOptional()
+  @IsString()
+  companyId?: string;
 }

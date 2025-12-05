@@ -17,9 +17,13 @@ export class InventoryService {
     @InjectRepository(OrdersitemEntity)
     private readonly ordersitemRepo: Repository<OrdersitemEntity>,
   ) { }
-  async create(createInventoryDto: CreateInventoryDto) {
+  async create(createInventoryDto: CreateInventoryDto, companyId: string) {
+    if (!companyId) {
+      throw new NotFoundException('CompanyId is required');
+    }
+
     const product = await this.productRepo.findOne({
-      where: { id: createInventoryDto.productId },
+      where: { id: createInventoryDto.productId, companyId },
     });
     if (!product) {
       throw new NotFoundException('Product not found');
@@ -28,20 +32,22 @@ export class InventoryService {
       product,
       stock: createInventoryDto.stock,
       sold: createInventoryDto.sold ?? 0,
+      companyId: companyId,
     });
     return this.inventoryRepo.save(inventory);
   }
 
-  async findAll() {
+  async findAll(companyId: string) {
     return this.inventoryRepo.find({
+      where: { companyId },
       relations: { product: true },
       order: { id: 'DESC' },
     });
   }
 
-  async findOne(id: number) {
+  async findOne(id: number, companyId: string) {
     const inventory = await this.inventoryRepo.findOne({
-      where: { id },
+      where: { id, companyId },
       relations: { product: true },
     });
     if (!inventory) {
@@ -50,12 +56,12 @@ export class InventoryService {
     return inventory;
   }
 
-  async update(id: number, updateInventoryDto: UpdateInventoryDto) {
-    const inventory = await this.findOne(id);
+  async update(id: number, updateInventoryDto: UpdateInventoryDto, companyId: string) {
+    const inventory = await this.findOne(id, companyId);
 
     if (typeof updateInventoryDto.productId === 'number') {
       const product = await this.productRepo.findOne({
-        where: { id: updateInventoryDto.productId },
+        where: { id: updateInventoryDto.productId, companyId },
       });
       if (!product) {
         throw new NotFoundException('Product not found');
@@ -77,10 +83,14 @@ export class InventoryService {
       inventory.sold = updateInventoryDto.sold;
     }
 
+    // Ensure companyId is preserved
+    inventory.companyId = companyId;
+
     return this.inventoryRepo.save(inventory);
   }
 
-  async remove(id: number) {
+  async remove(id: number, companyId: string) {
+    const inventory = await this.findOne(id, companyId);
     const result = await this.inventoryRepo.softDelete(id);
     if (!result.affected) {
       throw new NotFoundException('Inventory not found');
@@ -89,8 +99,10 @@ export class InventoryService {
   }
 
   // InventoryService: getAnalyticsSummary()
-  async getAnalyticsSummary() {
-    const totalItems = await this.inventoryRepo.count();
+  async getAnalyticsSummary(companyId: string) {
+    const totalItems = await this.inventoryRepo.count({
+      where: { companyId },
+    });
 
     const invAgg = await this.inventoryRepo
       .createQueryBuilder('inv')
@@ -102,6 +114,7 @@ export class InventoryService {
         'totalStockValue',
       )
       .addSelect('COALESCE(SUM(inv.totalIncome), 0)', 'inventoryRecordedIncome')
+      .where('inv.companyId = :companyId', { companyId })
       .getRawOne();
 
     const revenueAgg = await this.ordersitemRepo
@@ -109,12 +122,13 @@ export class InventoryService {
       .innerJoin('oi.order', 'ord')
       .select('COALESCE(SUM(oi.totalPrice), 0)', 'totalRevenue')
       .where('ord.isPaid = :paid', { paid: true })
+      .andWhere('ord.companyId = :companyId', { companyId })
       .getRawOne();
 
     const lowStockCount = await this.inventoryRepo
       .createQueryBuilder('inv')
-      .where('inv.isLowStock = :low', { low: true })
-      .orWhere('inv.stock <= :threshold', { threshold: 5 })
+      .where('inv.companyId = :companyId', { companyId })
+      .andWhere('(inv.isLowStock = :low OR inv.stock <= :threshold)', { low: true, threshold: 5 })
       .getCount();
 
     return {
@@ -129,19 +143,25 @@ export class InventoryService {
   }
 
   // InventoryService: getLowStock()
-  async getLowStock(threshold = 5) {
+  async getLowStock(threshold = 5, companyId?: string) {
+    const whereConditions: any[] = [];
+    if (companyId) {
+      whereConditions.push({ companyId, isLowStock: true });
+      whereConditions.push({ companyId, stock: (threshold as unknown) as any });
+    } else {
+      whereConditions.push({ isLowStock: true });
+      whereConditions.push({ stock: (threshold as unknown) as any });
+    }
+
     return this.inventoryRepo.find({
-      where: [
-        { isLowStock: true },
-        { stock: (threshold as unknown) as any }, // placeholder to ensure TypeORM handles below via query builder
-      ],
+      where: whereConditions,
       relations: { product: true },
       order: { stock: 'ASC' },
     });
   }
 
   // InventoryService: getTopSellers()
-  async getTopSellers(limit = 10, from?: Date, to?: Date) {
+  async getTopSellers(limit = 10, from?: Date, to?: Date, companyId?: string) {
     let qb = this.ordersitemRepo
       .createQueryBuilder('oi')
       .innerJoin('oi.product', 'prod')
@@ -151,6 +171,10 @@ export class InventoryService {
       .addSelect('COALESCE(SUM(oi.quantity), 0)', 'soldQuantity')
       .addSelect('COALESCE(SUM(oi.totalPrice), 0)', 'revenue')
       .where('ord.isPaid = :paid', { paid: true });
+
+    if (companyId) {
+      qb = qb.andWhere('ord.companyId = :companyId', { companyId });
+    }
 
     if (from) {
       qb = qb.andWhere('oi.createdAt >= :from', { from });

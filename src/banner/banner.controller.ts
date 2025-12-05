@@ -1,16 +1,20 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, HttpCode, HttpStatus, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, HttpCode, HttpStatus, NotFoundException, UseGuards } from '@nestjs/common';
 import { BannerService } from './banner.service';
 import { CreateBannerDto } from './dto/create-banner.dto';
 import { UpdateBannerDto } from './dto/update-banner.dto';
+import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
+import { CompanyIdGuard } from 'src/common/guards/company-id.guard';
+import { CompanyId } from 'src/common/decorators/company-id.decorator';
 
 @Controller('banners')
+@UseGuards(JwtAuthGuard, CompanyIdGuard)
 export class BannerController {
   constructor(private readonly bannerService: BannerService) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async create(@Body() dto: CreateBannerDto) {
-    const banner = await this.bannerService.create(dto);
+  async create(@Body() dto: CreateBannerDto, @CompanyId() companyId: string) {
+    const banner = await this.bannerService.create(dto, companyId);
     return {
       statusCode: HttpStatus.CREATED,
       message: 'Banner created successfully',
@@ -19,8 +23,8 @@ export class BannerController {
   }
 
   @Get()
-  async findAll() {
-    const banners = await this.bannerService.findAll();
+  async findAll(@CompanyId() companyId: string) {
+    const banners = await this.bannerService.findAll(companyId);
     return {
       statusCode: HttpStatus.OK,
       message: 'Banner list fetched successfully',
@@ -29,8 +33,8 @@ export class BannerController {
   }
 
   @Get(':id')
-  async findOne(@Param('id', ParseIntPipe) id: number) {
-    const banner = await this.bannerService.findOne(id);
+  async findOne(@Param('id', ParseIntPipe) id: number, @CompanyId() companyId: string) {
+    const banner = await this.bannerService.findOne(id, companyId);
     if (!banner) {
       throw new NotFoundException('Banner not found');
     }
@@ -42,8 +46,8 @@ export class BannerController {
   }
 
   @Patch(':id')
-  async update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateBannerDto) {
-    const updated = await this.bannerService.update(id, dto);
+  async update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateBannerDto, @CompanyId() companyId: string) {
+    const updated = await this.bannerService.update(id, dto, companyId);
     return {
       statusCode: HttpStatus.OK,
       message: 'Banner updated successfully',
@@ -52,8 +56,8 @@ export class BannerController {
   }
 
   @Delete(':id')
-  async remove(@Param('id', ParseIntPipe) id: number) {
-    await this.bannerService.remove(id);
+  async remove(@Param('id', ParseIntPipe) id: number, @CompanyId() companyId: string) {
+    await this.bannerService.remove(id, companyId);
     return {
       statusCode: HttpStatus.OK,
       message: 'Banner deleted successfully',

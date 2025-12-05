@@ -51,5 +51,8 @@ export class User {
   @Column({ type: 'timestamp', nullable: true })
   bannedAt?: Date | null;
 
+  @Column({ nullable: false })
+  companyId: string;
+
   
 }

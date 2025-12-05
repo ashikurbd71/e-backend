@@ -7,6 +7,7 @@ import { Cartproduct } from './entities/cartproduct.entity';
 import { ProductEntity } from 'src/products/entities/product.entity';
 import { User } from 'src/users/entities/user.entity';
 import { OrderService } from 'src/orders/orders.service';
+import { RequestContextService } from 'src/common/services/request-context.service';
 
 @Injectable()
 export class CartproductsService {
@@ -25,6 +26,7 @@ export class CartproductsService {
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
     private readonly ordersService: OrderService,
+    private readonly requestContextService: RequestContextService,
   ) {}
 
   async create(dto: CreateCartproductDto) {
@@ -110,6 +112,7 @@ export class CartproductsService {
     });
     if (!items.length) throw new BadRequestException('Cart is empty');
 
+    const companyId = this.requestContextService.getCompanyId();
     const orderDto = {
       customerId: userId,
       items: items.map((i) => ({ productId: i.product.id, quantity: i.quantity })),
@@ -117,7 +120,7 @@ export class CartproductsService {
       pickupPoint: payload?.pickupPoint,
     };
 
-    const order = await this.ordersService.create(orderDto);
+    const order = await this.ordersService.create(orderDto, companyId);
 
     // Clear cart (soft delete)
     await this.cartRepo.softDelete(items.map((i) => i.id));

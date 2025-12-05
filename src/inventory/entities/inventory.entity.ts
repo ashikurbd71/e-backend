@@ -24,6 +24,9 @@ export class InventoryEntity {
   @Column({ default: false })
   isLowStock: boolean;
 
+  @Column({ nullable: false })
+  companyId: string;
+
   @CreateDateColumn()
   createdAt: Date;
 

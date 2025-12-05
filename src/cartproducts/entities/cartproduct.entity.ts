@@ -23,6 +23,9 @@ export class Cartproduct {
   @Column('decimal', { precision: 12, scale: 2 })
   totalPrice: number;
 
+  @Column({ nullable: false })
+  companyId: string;
+
   @CreateDateColumn()
   createdAt: Date;
 
