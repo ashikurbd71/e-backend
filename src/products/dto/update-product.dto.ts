@@ -1,4 +1,4 @@
-import { IsString, IsNumber, IsOptional, IsBoolean, IsArray, ValidateNested } from "class-validator";
+import { IsString, IsNumber, IsOptional, IsBoolean, IsArray, ValidateNested, IsDateString } from "class-validator";
 import { Type } from "class-transformer";
 import { ProductImageDto } from "./product-image.dto";
 
@@ -40,4 +40,20 @@ export class UpdateProductDto {
   @IsOptional()
   @IsString()
   thumbnail?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isFlashSell?: boolean;
+
+  @IsOptional()
+  @IsDateString()
+  flashSellStartTime?: string;
+
+  @IsOptional()
+  @IsDateString()
+  flashSellEndTime?: string;
+
+  @IsOptional()
+  @IsNumber()
+  flashSellPrice?: number;
 }

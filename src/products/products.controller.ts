@@ -15,6 +15,7 @@ import {
 import { ProductService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { FlashSellDto } from './dto/flash-sell.dto';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { PermissionGuard } from 'src/common/guards/permission.guard';
 import { Permission } from 'src/common/decorators/permission.decorator';
@@ -25,7 +26,7 @@ import { CompanyId } from 'src/common/decorators/company-id.decorator';
 @Controller('products')
 @UseGuards(JwtAuthGuard, CompanyIdGuard)
 export class ProductController {
-  constructor(private readonly productService: ProductService) {}
+  constructor(private readonly productService: ProductService) { }
 
   @Post()
   async create(@Body() createDto: CreateProductDto, @CompanyId() companyId: string) {
@@ -40,6 +41,18 @@ export class ProductController {
     const products = await this.productService.findAll(companyId, {
       relations: ['inventory'],
     });
+    return { statusCode: HttpStatus.OK, data: products };
+  }
+
+  @Get('trending')
+  async findTrending(
+    @CompanyId() companyId: string,
+    @Query('days') days?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const daysParam = days ? parseInt(days, 10) : 30;
+    const limitParam = limit ? parseInt(limit, 10) : 10;
+    const products = await this.productService.findTrending(companyId, daysParam, limitParam);
     return { statusCode: HttpStatus.OK, data: products };
   }
 
@@ -68,5 +81,42 @@ export class ProductController {
     const isActive = active === "true";
     const product = await this.productService.toggleActive(id, isActive, companyId);
     return { statusCode: HttpStatus.OK, message: `Product ${isActive ? "activated" : "disabled"}`, data: product };
+  }
+
+  @Post("flash-sell")
+  async setFlashSell(@Body() flashSellDto: FlashSellDto, @CompanyId() companyId: string) {
+    const startTime = new Date(flashSellDto.flashSellStartTime);
+    const endTime = new Date(flashSellDto.flashSellEndTime);
+    const products = await this.productService.setFlashSell(
+      flashSellDto.productIds,
+      startTime,
+      endTime,
+      flashSellDto.flashSellPrice,
+      companyId
+    );
+    return {
+      statusCode: HttpStatus.OK,
+      message: "Flash sell set for selected products",
+      data: products,
+    };
+  }
+
+  @Delete("flash-sell")
+  async removeFlashSell(@Body() body: { productIds: number[] }, @CompanyId() companyId: string) {
+    const products = await this.productService.removeFlashSell(body.productIds, companyId);
+    return {
+      statusCode: HttpStatus.OK,
+      message: "Flash sell removed from selected products",
+      data: products,
+    };
+  }
+
+  @Get("flash-sell/active")
+  async getActiveFlashSellProducts(@CompanyId() companyId: string) {
+    const products = await this.productService.getActiveFlashSellProducts(companyId);
+    return {
+      statusCode: HttpStatus.OK,
+      data: products,
+    };
   }
 }

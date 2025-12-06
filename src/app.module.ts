@@ -25,6 +25,9 @@ import { OverviewModule } from './overview/overview.module';
 import * as nodemailer from 'nodemailer';
 import { NotificationsModule } from './notifications/notifications.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { PrivecyPolicyModule } from './privecy-policy/privecy-policy.module';
+import { TremsCondetionsModule } from './trems-condetions/trems-condetions.module';
+import { RefundPolicyModule } from './refund-policy/refund-policy.module';
 
 @Global()
 @Module({
@@ -78,6 +81,9 @@ import { DashboardModule } from './dashboard/dashboard.module';
     OverviewModule,
     NotificationsModule,
     DashboardModule,
+    PrivecyPolicyModule,
+    TremsCondetionsModule,
+    RefundPolicyModule,
 
   ],
   controllers: [AppController],

@@ -31,6 +31,18 @@ export class ProductEntity {
   @Column({ default: true })
   isActive: boolean;
 
+  @Column({ default: false })
+  isFlashSell: boolean;
+
+  @Column({ type: 'datetime', nullable: true })
+  flashSellStartTime?: Date;
+
+  @Column({ type: 'datetime', nullable: true })
+  flashSellEndTime?: Date;
+
+  @Column("decimal", { precision: 10, scale: 2, nullable: true })
+  flashSellPrice?: number;
+
   @Column({ nullable: false })
   companyId: string;
 
