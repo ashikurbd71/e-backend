@@ -7,9 +7,9 @@ import { CompanyIdGuard } from 'src/common/guards/company-id.guard';
 import { CompanyId } from 'src/common/decorators/company-id.decorator';
 
 @Controller("categories")
-@UseGuards(JwtAuthGuard, CompanyIdGuard)
+// @UseGuards(CompanyIdGuard)
 export class CategoryController {
-  constructor(private readonly categoryService: CategoryService) {}
+  constructor(private readonly categoryService: CategoryService) { }
 
   @Post()
   async create(@Body() createDto: CreateCategoryDto, @CompanyId() companyId: string) {

@@ -47,9 +47,55 @@ export class ProductService {
   }
 
   async findAll(companyId: string, options?: { relations?: string[] }): Promise<ProductEntity[]> {
+    const relations = options?.relations || ["category"];
     return this.productRepository.find({
       where: { deletedAt: IsNull(), companyId },
-      relations: ["category"],
+      relations: relations.includes("category") ? relations : [...relations, "category"],
+    });
+  }
+
+  async findByCategory(
+    companyId: string,
+    categoryName?: string,
+    categoryId?: number,
+    options?: { relations?: string[] }
+  ): Promise<ProductEntity[]> {
+    let categoryIdToFilter: number | undefined;
+
+    // Filter by category ID (takes precedence if both are provided)
+    if (categoryId) {
+      const category = await this.categoryRepository.findOne({
+        where: { id: categoryId, companyId, deletedAt: IsNull() }
+      });
+      if (!category) {
+        return [];
+      }
+      categoryIdToFilter = category.id;
+    }
+    // Filter by category name if provided and categoryId not set
+    else if (categoryName) {
+      const category = await this.categoryRepository.findOne({
+        where: { name: categoryName, companyId, deletedAt: IsNull() }
+      });
+      if (!category) {
+        return [];
+      }
+      categoryIdToFilter = category.id;
+    } else {
+      // If neither categoryName nor categoryId is provided, return empty array
+      return [];
+    }
+
+    const relations = options?.relations || ["category"];
+    const finalRelations = relations.includes("category") ? relations : [...relations, "category"];
+
+    return this.productRepository.find({
+      where: {
+        deletedAt: IsNull(),
+        companyId,
+        category: { id: categoryIdToFilter }
+      },
+      relations: finalRelations,
     });
   }
 
@@ -107,44 +153,51 @@ export class ProductService {
   }
 
   async findTrending(companyId: string, days: number = 30, limit: number = 10): Promise<ProductEntity[]> {
-    // Calculate the date threshold (e.g., 30 days ago)
-    const dateThreshold = new Date();
-    dateThreshold.setDate(dateThreshold.getDate() - days);
+    try {
+      // Calculate the date threshold (e.g., 30 days ago)
+      const dateThreshold = new Date();
+      dateThreshold.setDate(dateThreshold.getDate() - days);
 
-    // Get order items from recent orders, grouped by product
-    const trendingProducts = await this.orderItemRepository
-      .createQueryBuilder('orderItem')
-      .innerJoin('orderItem.product', 'product')
-      .innerJoin('orderItem.order', 'order')
-      .where('orderItem.companyId = :companyId', { companyId })
-      .andWhere('orderItem.deletedAt IS NULL')
-      .andWhere('order.deletedAt IS NULL')
-      .andWhere('order.createdAt >= :dateThreshold', { dateThreshold })
-      .andWhere('product.deletedAt IS NULL')
-      .andWhere('product.isActive = :isActive', { isActive: true })
-      .select('product.id', 'productId')
-      .addSelect('SUM(orderItem.quantity)', 'totalSold')
-      .groupBy('product.id')
-      .orderBy('totalSold', 'DESC')
-      .limit(limit)
-      .getRawMany();
+      // Get order items from recent orders, grouped by product
+      const trendingProducts = await this.orderItemRepository
+        .createQueryBuilder('orderItem')
+        .innerJoin('orderItem.product', 'product')
+        .innerJoin('orderItem.order', 'order')
+        .where('orderItem.companyId = :companyId', { companyId })
+        .andWhere('order.companyId = :companyId', { companyId })
+        .andWhere('orderItem.deletedAt IS NULL')
+        .andWhere('order.deletedAt IS NULL')
+        .andWhere('order.createdAt >= :dateThreshold', { dateThreshold })
+        .andWhere('product.deletedAt IS NULL')
+        .andWhere('product.isActive = :isActive', { isActive: true })
+        .select('product.id', 'productId')
+        .addSelect('SUM(orderItem.quantity)', 'totalSold')
+        .groupBy('product.id')
+        .orderBy('totalSold', 'DESC')
+        .limit(limit)
+        .getRawMany();
 
-    // Extract product IDs
-    const productIds = trendingProducts.map((item) => item.productId);
+      // Extract product IDs
+      const productIds = trendingProducts.map((item) => item.productId).filter(Boolean);
 
-    if (productIds.length === 0) {
+      if (productIds.length === 0) {
+        return [];
+      }
+
+      // Fetch full product details with category
+      const products = await this.productRepository.find({
+        where: { id: In(productIds), deletedAt: IsNull(), companyId, isActive: true },
+        relations: ['category'],
+      });
+
+      // Sort products by the order from trendingProducts query
+      const productMap = new Map(products.map((p) => [p.id, p]));
+      return productIds.map((id) => productMap.get(id)).filter(Boolean) as ProductEntity[];
+    } catch (error) {
+      console.error('Error in findTrending:', error);
+      // Return empty array on error instead of throwing
       return [];
     }
-
-    // Fetch full product details with category
-    const products = await this.productRepository.find({
-      where: { id: In(productIds), deletedAt: IsNull(), companyId, isActive: true },
-      relations: ['category'],
-    });
-
-    // Sort products by the order from trendingProducts query
-    const productMap = new Map(products.map((p) => [p.id, p]));
-    return productIds.map((id) => productMap.get(id)).filter(Boolean) as ProductEntity[];
   }
 
   async setFlashSell(

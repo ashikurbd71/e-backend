@@ -7,7 +7,7 @@ import { CompanyIdGuard } from 'src/common/guards/company-id.guard';
 import { CompanyId } from 'src/common/decorators/company-id.decorator';
 
 @Controller('privecy-policy')
-@UseGuards(JwtAuthGuard, CompanyIdGuard)
+// @UseGuards(JwtAuthGuard, CompanyIdGuard)
 export class PrivecyPolicyController {
   constructor(private readonly privecyPolicyService: PrivecyPolicyService) { }
 

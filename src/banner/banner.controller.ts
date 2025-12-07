@@ -7,9 +7,9 @@ import { CompanyIdGuard } from 'src/common/guards/company-id.guard';
 import { CompanyId } from 'src/common/decorators/company-id.decorator';
 
 @Controller('banners')
-@UseGuards(JwtAuthGuard, CompanyIdGuard)
+// @UseGuards(JwtAuthGuard, CompanyIdGuard)
 export class BannerController {
-  constructor(private readonly bannerService: BannerService) {}
+  constructor(private readonly bannerService: BannerService) { }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)

@@ -3,7 +3,7 @@ export enum UserRole {
   admin = 'admin',
 }
 
-import { IsString, IsEmail, IsOptional, IsBoolean, IsEnum } from 'class-validator';
+import { IsString, IsEmail, IsOptional, IsBoolean, IsEnum, MinLength } from 'class-validator';
 
 export class CreateUserDto {
   @IsString()
@@ -20,6 +20,10 @@ export class CreateUserDto {
   @IsString()
   address?: string;
 
+  @IsOptional()
+  @IsString()
+  @MinLength(6)
+  password?: string;
 
   @IsOptional()
   @IsEnum(UserRole)

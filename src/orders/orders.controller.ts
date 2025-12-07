@@ -6,9 +6,9 @@ import { CompanyIdGuard } from 'src/common/guards/company-id.guard';
 import { CompanyId } from 'src/common/decorators/company-id.decorator';
 
 @Controller("orders")
-@UseGuards(JwtAuthGuard, CompanyIdGuard)
+// @UseGuards(JwtAuthGuard, CompanyIdGuard)
 export class OrderController {
-  constructor(private readonly orderService: OrderService) {}
+  constructor(private readonly orderService: OrderService) { }
 
   @Post()
   async create(@Body() dto: CreateOrderDto, @CompanyId() companyId: string) {
@@ -53,7 +53,7 @@ export class OrderController {
     return { statusCode: 200, message: "Order success", data: o };
   }
 
-  
+
   @Patch(":id/ship")
   async ship(
     @Param("id", ParseIntPipe) id: number,

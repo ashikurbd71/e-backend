@@ -7,7 +7,7 @@ import { CompanyIdGuard } from 'src/common/guards/company-id.guard';
 import { CompanyId } from 'src/common/decorators/company-id.decorator';
 
 @Controller('trems-condetions')
-@UseGuards(JwtAuthGuard, CompanyIdGuard)
+// @UseGuards(JwtAuthGuard, CompanyIdGuard)
 export class TremsCondetionsController {
   constructor(private readonly tremsCondetionsService: TremsCondetionsService) { }
 

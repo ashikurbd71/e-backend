@@ -5,13 +5,20 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
+import { JwtService } from '@nestjs/jwt';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+    private readonly jwtService: JwtService,
   ) { }
+
+  private hashPassword(password: string, salt: string): string {
+    return crypto.createHmac('sha256', salt).update(password).digest('hex');
+  }
 
   async create(createUserDto: CreateUserDto, companyId: string): Promise<User> {
     const existing = await this.userRepo.findOne({ 
@@ -19,7 +26,7 @@ export class UsersService {
     });
     if (existing) throw new BadRequestException('Email already exists');
 
-    const user = this.userRepo.create({
+    const userData: any = {
       name: createUserDto.name,
       email: createUserDto.email,
       phone: createUserDto.phone,
@@ -27,8 +34,19 @@ export class UsersService {
       role: (createUserDto as any).role ?? 'customer',
       isActive: (createUserDto as any).isActive ?? true,
       companyId,
-    });
-    return this.userRepo.save(user);
+    };
+
+    // If password is provided, hash it
+    if (createUserDto.password) {
+      const salt = crypto.randomBytes(16).toString('hex');
+      const hash = this.hashPassword(createUserDto.password, salt);
+      userData.passwordSalt = salt;
+      userData.passwordHash = hash;
+    }
+
+    const user = this.userRepo.create(userData) as unknown as User;
+    const saved = await this.userRepo.save(user);
+    return saved;
   }
 
   async findAll(companyId: string): Promise<User[]> {
@@ -129,5 +147,36 @@ export class UsersService {
     }
 
     return qb.orderBy('user.id', 'DESC').getMany();
+  }
+
+  async login(email: string, password: string, companyId: string) {
+    const user = await this.userRepo.findOne({ 
+      where: { email, companyId } 
+    });
+    if (!user) throw new NotFoundException('Invalid credentials');
+
+    if (!user.passwordHash || !user.passwordSalt) {
+      throw new BadRequestException('Password not set for this user');
+    }
+
+    const hash = this.hashPassword(password, user.passwordSalt);
+    if (hash !== user.passwordHash) throw new NotFoundException('Invalid credentials');
+
+    if (!user.isActive) throw new BadRequestException('User account is inactive');
+    if (user.isBanned) throw new BadRequestException('User account is banned');
+
+    const payload = {
+      sub: user.id,
+      userId: user.id,
+      email: user.email,
+      name: user.name,
+      companyId: user.companyId,
+      role: user.role,
+    };
+
+    const accessToken = this.jwtService.sign(payload);
+
+    const { passwordHash, passwordSalt, ...safe } = user as any;
+    return { accessToken, user: safe };
   }
 }

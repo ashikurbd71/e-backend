@@ -34,10 +34,10 @@ export class ProductEntity {
   @Column({ default: false })
   isFlashSell: boolean;
 
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   flashSellStartTime?: Date;
 
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   flashSellEndTime?: Date;
 
   @Column("decimal", { precision: 10, scale: 2, nullable: true })

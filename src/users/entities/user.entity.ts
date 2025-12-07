@@ -54,5 +54,9 @@ export class User {
   @Column({ nullable: false })
   companyId: string;
 
-  
+  @Column({ nullable: true })
+  passwordHash?: string;
+
+  @Column({ nullable: true })
+  passwordSalt?: string;
 }

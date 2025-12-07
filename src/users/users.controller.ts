@@ -1,19 +1,45 @@
 // UsersController
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpStatus, ParseIntPipe, HttpCode, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, HttpStatus, ParseIntPipe, HttpCode, UseGuards, BadRequestException } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { BanUserDto } from './dto/ban-user.dto';
+import { LoginDto } from './dto/login.dto';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { CompanyIdGuard } from 'src/common/guards/company-id.guard';
 import { CompanyId } from 'src/common/decorators/company-id.decorator';
 
 @Controller('users')
-@UseGuards(JwtAuthGuard, CompanyIdGuard)
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(private readonly usersService: UsersService) { }
+
+  @Post('register')
+  @HttpCode(HttpStatus.CREATED)
+  async register(@Body() body: CreateUserDto & { companyId?: string }) {
+    const { companyId, ...createUserDto } = body;
+    if (!companyId) {
+      throw new BadRequestException('CompanyId is required');
+    }
+    if (!createUserDto.password) {
+      throw new BadRequestException('Password is required');
+    }
+    const user = await this.usersService.create(createUserDto, companyId);
+    return { statusCode: HttpStatus.CREATED, message: 'User registered successfully', data: user };
+  }
+
+  @Post('login')
+  @HttpCode(HttpStatus.OK)
+  async login(@Body() loginDto: LoginDto) {
+    const { accessToken, user } = await this.usersService.login(
+      loginDto.email,
+      loginDto.password,
+      loginDto.companyId
+    );
+    return { statusCode: HttpStatus.OK, message: 'Login successful', accessToken, user };
+  }
 
   @Post()
+  @UseGuards(JwtAuthGuard, CompanyIdGuard)
   @HttpCode(HttpStatus.CREATED)
   async create(@Body() createUserDto: CreateUserDto, @CompanyId() companyId: string) {
     const user = await this.usersService.create(createUserDto, companyId);

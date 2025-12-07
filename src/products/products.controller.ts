@@ -24,7 +24,7 @@ import { CompanyIdGuard } from 'src/common/guards/company-id.guard';
 import { CompanyId } from 'src/common/decorators/company-id.decorator';
 
 @Controller('products')
-@UseGuards(JwtAuthGuard, CompanyIdGuard)
+// @UseGuards(JwtAuthGuard, CompanyIdGuard)
 export class ProductController {
   constructor(private readonly productService: ProductService) { }
 
@@ -34,22 +34,38 @@ export class ProductController {
     return { statusCode: HttpStatus.CREATED, message: 'Product created', data: product };
   }
 
-  @UseGuards(JwtAuthGuard, PermissionGuard)
-  @Permission(FeaturePermission.PRODUCTS)
   @Get()
-  async findAll(@CompanyId() companyId: string) {
-    const products = await this.productService.findAll(companyId, {
-      relations: ['inventory'],
-    });
+  async findAll(
+    @Query('companyId') companyId: string
+  ) {
+    const products = await this.productService.findAll(companyId);
+    return { statusCode: HttpStatus.OK, data: products };
+  }
+
+  @Get('category')
+  async findByCategory(
+    @Query('companyId') companyId: string,
+    @Query('categories') categories?: string,
+    @Query('categoryId') categoryId?: string
+  ) {
+    const parsedCategoryId = categoryId ? parseInt(categoryId, 10) : undefined;
+    const products = await this.productService.findByCategory(
+      companyId,
+      categories,
+      parsedCategoryId
+    );
     return { statusCode: HttpStatus.OK, data: products };
   }
 
   @Get('trending')
   async findTrending(
-    @CompanyId() companyId: string,
+    @Query('companyId') companyId: string,
     @Query('days') days?: string,
     @Query('limit') limit?: string,
   ) {
+    if (!companyId) {
+      return { statusCode: HttpStatus.BAD_REQUEST, message: 'companyId is required', data: [] };
+    }
     const daysParam = days ? parseInt(days, 10) : 30;
     const limitParam = limit ? parseInt(limit, 10) : 10;
     const products = await this.productService.findTrending(companyId, daysParam, limitParam);
@@ -58,9 +74,7 @@ export class ProductController {
 
   @Get(":id")
   async findOne(@Param("id", ParseIntPipe) id: number, @CompanyId() companyId: string) {
-    const product = await this.productService.findOne(id, companyId, {
-      relations: ["inventory"],
-    });
+    const product = await this.productService.findOne(id, companyId);
     return { statusCode: HttpStatus.OK, data: product };
   }
 

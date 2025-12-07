@@ -7,9 +7,9 @@ import { CompanyIdGuard } from 'src/common/guards/company-id.guard';
 import { CompanyId } from 'src/common/decorators/company-id.decorator';
 
 @Controller('promocode')
-@UseGuards(JwtAuthGuard, CompanyIdGuard)
+// @UseGuards(JwtAuthGuard, CompanyIdGuard)
 export class PromocodeController {
-  constructor(private readonly promocodeService: PromocodeService) {}
+  constructor(private readonly promocodeService: PromocodeService) { }
 
   @Post()
   async create(@Body() dto: CreatePromocodeDto, @CompanyId() companyId: string) {
