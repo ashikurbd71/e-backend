@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { CreateCartproductDto } from './dto/create-cartproduct.dto';
 import { UpdateCartproductDto } from './dto/update-cartproduct.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, IsNull } from 'typeorm';
 import { Cartproduct } from './entities/cartproduct.entity';
 import { ProductEntity } from 'src/products/entities/product.entity';
 import { User } from 'src/users/entities/user.entity';
@@ -11,9 +11,12 @@ import { RequestContextService } from 'src/common/services/request-context.servi
 
 @Injectable()
 export class CartproductsService {
-  async findUserCart(userId: number) {
+  async findUserCart(userId: number, companyId: string) {
+    if (!companyId) {
+      throw new BadRequestException('CompanyId is required');
+    }
     return this.cartRepo.find({
-      where: { user: { id: userId } },
+      where: { user: { id: userId }, companyId },
       relations: ['product', 'user'],
       order: { updatedAt: 'DESC' },
     });
@@ -27,24 +30,55 @@ export class CartproductsService {
     private readonly userRepo: Repository<User>,
     private readonly ordersService: OrderService,
     private readonly requestContextService: RequestContextService,
-  ) {}
+  ) { }
 
-  async create(dto: CreateCartproductDto) {
+  async create(dto: CreateCartproductDto, companyId: string) {
+    if (!companyId) {
+      throw new BadRequestException('CompanyId is required');
+    }
     const user = await this.userRepo.findOne({ where: { id: dto.userId } });
     if (!user) throw new NotFoundException('User not found');
 
-    const product = await this.productRepo.findOne({ where: { id: dto.productId } });
+    const product = await this.productRepo.findOne({
+      where: {
+        id: dto.productId,
+        companyId,
+        deletedAt: IsNull()
+      }
+    });
     if (!product) throw new NotFoundException('Product not found');
 
+    // Check for existing cart item including soft-deleted ones (due to unique constraint)
     const existing = await this.cartRepo.findOne({
-      where: { user: { id: user.id }, product: { id: product.id } },
+      where: { user: { id: user.id }, product: { id: product.id }, companyId },
       relations: ['user', 'product'],
+      withDeleted: true, // Include soft-deleted items
     });
 
+    // Use discountPrice if available, otherwise use price
+    const finalPrice = product.discountPrice || product.price;
+
     if (existing) {
+      // If item was soft-deleted, restore it first
+      if (existing.deletedAt) {
+        await this.cartRepo.restore(existing.id);
+        // Reload the entity after restore
+        const restored = await this.cartRepo.findOne({
+          where: { id: existing.id },
+          relations: ['user', 'product'],
+        });
+        if (restored) {
+          restored.quantity += dto.quantity;
+          restored.unitPrice = +finalPrice;
+          restored.totalPrice = +restored.unitPrice * restored.quantity;
+          restored.companyId = companyId;
+          return this.cartRepo.save(restored);
+        }
+      }
       existing.quantity += dto.quantity;
-      existing.unitPrice = +product.price;
+      existing.unitPrice = +finalPrice;
       existing.totalPrice = +existing.unitPrice * existing.quantity;
+      existing.companyId = companyId;
       return this.cartRepo.save(existing);
     }
 
@@ -52,15 +86,18 @@ export class CartproductsService {
       user,
       product,
       quantity: dto.quantity,
-      unitPrice: +product.price,
-      totalPrice: +product.price * dto.quantity,
+      unitPrice: +finalPrice,
+      totalPrice: +finalPrice * dto.quantity,
+      companyId,
     });
 
     return this.cartRepo.save(item);
   }
 
-  async findAll(userId?: number) {
-    const where = userId ? { user: { id: userId } } : {};
+  async findAll(userId?: number, companyId?: string) {
+    const where: any = {};
+    if (userId) where.user = { id: userId };
+    if (companyId) where.companyId = companyId;
     return this.cartRepo.find({
       where,
       relations: ['product', 'user'],
@@ -92,9 +129,12 @@ export class CartproductsService {
     if (!res.affected) throw new NotFoundException('Cart item not found');
   }
 
-  async clearUserCart(userId: number) {
+  async clearUserCart(userId: number, companyId: string) {
+    if (!companyId) {
+      throw new BadRequestException('CompanyId is required');
+    }
     const items = await this.cartRepo.find({
-      where: { user: { id: userId } },
+      where: { user: { id: userId }, companyId },
     });
 
     if (!items.length) {

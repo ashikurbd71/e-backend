@@ -28,6 +28,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { PrivecyPolicyModule } from './privecy-policy/privecy-policy.module';
 import { TremsCondetionsModule } from './trems-condetions/trems-condetions.module';
 import { RefundPolicyModule } from './refund-policy/refund-policy.module';
+import { ReviewsModule } from './reviews/reviews.module';
 
 @Global()
 @Module({
@@ -84,6 +85,7 @@ import { RefundPolicyModule } from './refund-policy/refund-policy.module';
     PrivecyPolicyModule,
     TremsCondetionsModule,
     RefundPolicyModule,
+    ReviewsModule,
 
   ],
   controllers: [AppController],

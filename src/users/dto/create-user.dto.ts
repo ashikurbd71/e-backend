@@ -18,6 +18,10 @@ export class CreateUserDto {
 
   @IsOptional()
   @IsString()
+  district?: string;
+
+  @IsOptional()
+  @IsString()
   address?: string;
 
   @IsOptional()

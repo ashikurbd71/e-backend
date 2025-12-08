@@ -44,4 +44,8 @@ export class CreateOrderDto {
 
   @IsOptional()
   pickupPoint?: any;
+
+  @IsOptional()
+  @IsString()
+  deliveryType?: "INSIDEDHAKA" | "OUTSIDEDHAKA";
 }

@@ -1,4 +1,4 @@
-import { IsInt, Min } from 'class-validator';
+import { IsInt, Min, IsString } from 'class-validator';
 
 export class CreateCartproductDto {
   @IsInt()
@@ -10,4 +10,7 @@ export class CreateCartproductDto {
   @IsInt()
   @Min(1)
   quantity: number;
+
+  @IsString()
+  companyId: string;
 }

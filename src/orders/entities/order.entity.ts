@@ -46,6 +46,9 @@ export class Order {
   @Column({ nullable: false })
   companyId: string;
 
+  @Column({ default: "INSIDEDHAKA" })
+  deliveryType: "INSIDEDHAKA" | "OUTSIDEDHAKA";
+
   @CreateDateColumn()
   createdAt: Date;
 

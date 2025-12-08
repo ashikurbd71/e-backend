@@ -8,6 +8,7 @@ import { LoginDto } from './dto/login.dto';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { CompanyIdGuard } from 'src/common/guards/company-id.guard';
 import { CompanyId } from 'src/common/decorators/company-id.decorator';
+import { UserId } from 'src/common/decorators/user-id.decorator';
 
 @Controller('users')
 export class UsersController {
@@ -46,7 +47,24 @@ export class UsersController {
     return { statusCode: HttpStatus.CREATED, message: 'User created', data: user };
   }
 
+  @Get('me')
+  @UseGuards(JwtAuthGuard, CompanyIdGuard)
+  @HttpCode(HttpStatus.OK)
+  async getCurrentUser(@UserId() userId: number, @CompanyId() companyId: string) {
+    const user = await this.usersService.findOne(userId, companyId);
+    return { statusCode: HttpStatus.OK, message: 'Current user fetched', data: user };
+  }
+
+  @Patch('me')
+  @UseGuards(JwtAuthGuard, CompanyIdGuard)
+  @HttpCode(HttpStatus.OK)
+  async updateCurrentUser(@UserId() userId: number, @Body() updateUserDto: UpdateUserDto, @CompanyId() companyId: string) {
+    const updated = await this.usersService.update(userId, updateUserDto, companyId);
+    return { statusCode: HttpStatus.OK, message: 'Profile updated', data: updated };
+  }
+
   @Get()
+  @UseGuards(JwtAuthGuard, CompanyIdGuard)
   @HttpCode(HttpStatus.OK)
   async findAll(@CompanyId() companyId: string) {
     const users = await this.usersService.findAll(companyId);
@@ -54,6 +72,7 @@ export class UsersController {
   }
 
   @Get(':id')
+  @UseGuards(JwtAuthGuard, CompanyIdGuard)
   @HttpCode(HttpStatus.OK)
   async findOne(@Param('id', ParseIntPipe) id: number, @CompanyId() companyId: string) {
     const user = await this.usersService.findOne(id, companyId);
@@ -61,6 +80,7 @@ export class UsersController {
   }
 
   @Patch(':id')
+  @UseGuards(JwtAuthGuard, CompanyIdGuard)
   @HttpCode(HttpStatus.OK)
   async update(@Param('id', ParseIntPipe) id: number, @Body() updateUserDto: UpdateUserDto, @CompanyId() companyId: string) {
     const updated = await this.usersService.update(id, updateUserDto, companyId);

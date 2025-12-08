@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository, DataSource } from "typeorm";
+import { Repository, DataSource, IsNull } from "typeorm";
 import { Order } from "./entities/order.entity";
 import { CreateOrderDto } from "./dto/create-order.dto";
 import { ProductEntity } from "src/products/entities/product.entity";
@@ -43,9 +43,11 @@ export class OrderService {
       order.customer = customer ?? undefined;
       order.customerName = customer?.name ?? createDto.customerName ?? "";
       order.customerPhone = customer?.phone ?? createDto.customerPhone ?? "";
-      order.customerAddress = customer?.address ?? createDto.customerAddress ?? "";
+      // Use shippingAddress if provided, otherwise use customerAddress or customer's address
+      order.customerAddress = createDto.shippingAddress ?? customer?.address ?? createDto.customerAddress ?? "";
       order.status = "pending";
       order.paymentMethod = createDto.paymentMethod ?? "DIRECT";
+      order.deliveryType = createDto.deliveryType ?? "INSIDEDHAKA";
       order.companyId = companyId;
 
 
@@ -57,21 +59,31 @@ export class OrderService {
 
       for (const it of createDto.items) {
         const product = await this.productRepo.findOne({ 
-          where: { id: it.productId, companyId } 
+          where: { 
+            id: it.productId, 
+            companyId,
+            deletedAt: IsNull()
+          } 
         });
         if (!product) throw new NotFoundException(`Product ${it.productId} not found`);
 
+        // Check inventory (optional - if inventory doesn't exist, allow the order)
         const inventory = await this.inventoryRepo.findOne({ 
           where: { product: { id: product.id }, companyId } 
         });
-        if (!inventory || inventory.stock < it.quantity) throw new BadRequestException(`Insufficient stock for product ${product.id}`);
+        if (inventory && inventory.stock < it.quantity) {
+          throw new BadRequestException(`Insufficient stock for product ${product.id}. Available: ${inventory.stock}, Requested: ${it.quantity}`);
+        }
+
+        // Use discountPrice if available, otherwise use price
+        const finalPrice = product.discountPrice || product.price;
 
         const oi = new OrdersitemEntity();
         oi.order = order;
         oi.product = product;
         oi.quantity = it.quantity;
-        oi.unitPrice = +product.price;
-        oi.totalPrice = +product.price * it.quantity;
+        oi.unitPrice = +finalPrice;
+        oi.totalPrice = +finalPrice * it.quantity;
         oi.companyId = companyId;
 
         total += oi.totalPrice;
@@ -119,6 +131,17 @@ export class OrderService {
     });
   }
 
+  async findByCustomerId(customerId: number, companyId: string) {
+    return this.orderRepo.find({ 
+      where: { 
+        customer: { id: customerId },
+        companyId 
+      },
+      relations: ["items", "items.product", "customer"],
+      order: { createdAt: 'DESC' }
+    });
+  }
+
   async findOne(id: number, companyId: string) {
     const o = await this.orderRepo.findOne({ 
       where: { id, companyId }, 
@@ -156,9 +179,24 @@ export class OrderService {
   }
 
   // cancel: restore stock
-  async cancelOrder(id: number, companyId: string) {
+  async cancelOrder(id: number, companyId: string, userId?: number) {
     const order = await this.findOne(id, companyId);
+    
+    // Check if order belongs to user
+    if (userId && order.customer?.id !== userId) {
+      throw new BadRequestException("You can only cancel your own orders");
+    }
+    
     if (order.status === "cancelled") throw new BadRequestException("Already cancelled");
+    
+    // Check if order is within 24 hours
+    const orderDate = new Date(order.createdAt);
+    const now = new Date();
+    const hoursDiff = (now.getTime() - orderDate.getTime()) / (1000 * 60 * 60);
+    
+    if (hoursDiff > 24) {
+      throw new BadRequestException("Orders can only be cancelled within 24 hours of placement");
+    }
 
     order.status = "cancelled";
     await this.orderRepo.save(order);

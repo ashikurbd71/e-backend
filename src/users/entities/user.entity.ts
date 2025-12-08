@@ -16,6 +16,9 @@ export class User {
   phone?: string;
 
   @Column({ nullable: true })
+  district?: string;
+
+  @Column({ nullable: true })
   address?: string;
 
   @Column({ default: true })

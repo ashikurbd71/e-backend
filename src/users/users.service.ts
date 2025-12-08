@@ -78,6 +78,7 @@ export class UsersService {
     if (dto.email !== undefined) user.email = dto.email as any;
     if (dto.phone !== undefined) user.phone = dto.phone as any;
     if (dto.address !== undefined) user.address = dto.address as any;
+    if (dto.district !== undefined) user.district = dto.district as any;
 
     if (dto.role !== undefined) user.role = dto.role as any;
     if (dto.isActive !== undefined) user.isActive = dto.isActive as any;
