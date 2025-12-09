@@ -22,7 +22,7 @@ import { HelpModule } from './help/help.module';
 import { SystemuserModule } from './systemuser/systemuser.module';
 import { EarningsModule } from './earnings/earnings.module';
 import { OverviewModule } from './overview/overview.module';
-import * as nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import { NotificationsModule } from './notifications/notifications.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { PrivecyPolicyModule } from './privecy-policy/privecy-policy.module';
@@ -94,16 +94,55 @@ import { ReviewsModule } from './reviews/reviews.module';
     {
       provide: 'MAILER_TRANSPORT',
       useFactory: async () => {
-        const transporter = nodemailer.createTransport({
-          host: process.env.SMTP_HOST,
-          port: +(process.env.SMTP_PORT ?? 587),
-          secure: false,
-          auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS,
+        const apiKey = 're_1234567890';
+        if (!apiKey) {
+          throw new Error('RESEND_API_KEY is not configured');
+        }
+
+        const resend = new Resend(apiKey);
+        const defaultFrom = 'ashikurovi2003@gmail.com';
+
+        return {
+          // Minimal nodemailer-compatible surface used by the app.
+          async sendMail(message: {
+            from?: string;
+            to: string | string[];
+            subject: string;
+            text?: string;
+            html?: string;
+            attachments?: Array<{ filename: string; content: Buffer | string }>;
+          }) {
+            const to = Array.isArray(message.to) ? message.to : [message.to];
+            const from = message.from ?? defaultFrom;
+            if (!from) {
+              throw new Error('No from address configured for Resend email');
+            }
+
+            const sendOptions = {
+              from,
+              to,
+              subject: message.subject,
+              text: message.text ?? undefined,
+              html: message.html ?? undefined,
+              attachments: message.attachments?.map((att) => ({
+                filename: att.filename,
+                content: att.content,
+              })),
+              headers: {
+                'X-Priority': '1 (Highest)',
+                'X-MSMail-Priority': 'High',
+                Importance: 'High',
+              },
+            };
+
+            const { data, error } = await resend.emails.send(sendOptions as any);
+            if (error) {
+              throw new Error(error.message ?? 'Failed to send email via Resend');
+            }
+
+            return { id: data?.id };
           },
-        });
-        return transporter;
+        };
       },
     },
   ],

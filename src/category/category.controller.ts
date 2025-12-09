@@ -1,19 +1,22 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, ParseIntPipe, HttpStatus, Patch, Query, UseGuards } from "@nestjs/common";
+import { Controller, Get, Post, Put, Delete, Body, Param, ParseIntPipe, HttpStatus, Patch, Query, BadRequestException } from "@nestjs/common";
 import { CategoryService } from "./category.service";
 import { CreateCategoryDto } from "./dto/create-category.dto";
 import { UpdateCategoryDto } from "./dto/update-category.dto";
-import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
-import { CompanyIdGuard } from 'src/common/guards/company-id.guard';
 import { CompanyId } from 'src/common/decorators/company-id.decorator';
 
 @Controller("categories")
-// @UseGuards(CompanyIdGuard)
 export class CategoryController {
   constructor(private readonly categoryService: CategoryService) { }
 
   @Post()
-  async create(@Body() createDto: CreateCategoryDto, @CompanyId() companyId: string) {
-    const category = await this.categoryService.create(createDto, companyId);
+  async create(
+    @Body() createDto: CreateCategoryDto,
+    @Query("companyId") companyIdFromQuery?: string,
+    @CompanyId() companyIdFromToken?: string
+  ) {
+    const companyId = companyIdFromQuery || companyIdFromToken;
+    if (!companyId) throw new BadRequestException("companyId is required");
+    const category = await this.categoryService.create(createDto, companyId as string);
     return { statusCode: HttpStatus.CREATED, message: "Category created", data: category };
   }
 
@@ -30,19 +33,32 @@ export class CategoryController {
   }
 
   @Patch(":id")
-  async update(@Param("id", ParseIntPipe) id: number, @Body() updateDto: UpdateCategoryDto, @CompanyId() companyId: string) {
-    const category = await this.categoryService.update(id, updateDto, companyId);
+  async update(
+    @Param("id", ParseIntPipe) id: number,
+    @Body() updateDto: UpdateCategoryDto,
+    @Query("companyId") companyIdFromQuery?: string,
+    @CompanyId() companyIdFromToken?: string
+  ) {
+    const companyId = companyIdFromQuery || companyIdFromToken;
+    const category = await this.categoryService.update(id, updateDto, companyId as string);
     return { statusCode: HttpStatus.OK, message: "Category updated", data: category };
   }
 
   @Delete(":id")
-  async softDelete(@Param("id", ParseIntPipe) id: number, @CompanyId() companyId: string) {
+  async softDelete(
+    @Param("id", ParseIntPipe) id: number,
+    @CompanyId() companyId: string,
+  ) {
     await this.categoryService.softDelete(id, companyId);
     return { statusCode: HttpStatus.OK, message: "Category soft deleted" };
   }
 
   @Patch(":id/toggle-active")
-  async toggleActive(@Param("id", ParseIntPipe) id: number, @Query("active") active: string | undefined, @CompanyId() companyId: string) {
+  async toggleActive(
+    @Param("id", ParseIntPipe) id: number,
+    @Query("active") active: string | undefined,
+    @CompanyId() companyId: string,
+  ) {
     const activeBool =
       active !== undefined
         ? ["true", "1"].includes(active.toLowerCase())

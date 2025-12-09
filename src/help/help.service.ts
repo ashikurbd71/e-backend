@@ -2,7 +2,6 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Inject } from '@nestjs/common';
-import { Transporter } from 'nodemailer';
 import { CreateHelpDto } from './dto/create-help.dto';
 import { UpdateHelpDto } from './dto/update-help.dto';
 import { Help, SupportStatus } from './entities/help.entity';
@@ -13,7 +12,7 @@ export class HelpService {
     @InjectRepository(Help)
     private readonly helpRepo: Repository<Help>,
     @Inject('MAILER_TRANSPORT')
-    private readonly mailer: Transporter,
+    private readonly mailer: { sendMail: (message: unknown) => Promise<{ id?: string }> },
   ) { }
 
   async create(createHelpDto: CreateHelpDto, companyId: string) {
@@ -27,7 +26,7 @@ export class HelpService {
       companyId: companyId,
     });
     const saved = await this.helpRepo.save(entity);
-    await this.sendSupportEmail(saved);
+    await this.sendSupportEmail(saved, createHelpDto.email);
     return saved;
   }
 
@@ -58,11 +57,11 @@ export class HelpService {
     return { success: true };
   }
 
-  private async sendSupportEmail(help: Help) {
+  private async sendSupportEmail(help: Help, email: string) {
     try {
-      const adminEmail = process.env.ADMIN_EMAIL ?? 'admin.clv@gmail.com';
+      const adminEmail = 'ashikurovi2003@gmail.com';
       await this.mailer.sendMail({
-        from: process.env.SMTP_FROM ?? process.env.SMTP_USER,
+        from: email,
         to: adminEmail,
         subject: `New Support Issue from ${help.email}`,
         text: `Issue:\n${help.issue}\nStatus: ${help.status}\nTicket ID: ${help.id}`,

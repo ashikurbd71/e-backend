@@ -21,7 +21,7 @@ export class CategoryEntity {
   companyId: string;
 
   @ManyToOne(() => CategoryEntity, (cat) => cat.children, { nullable: true })
-  parent: CategoryEntity;
+  parent: CategoryEntity | null;
 
   @OneToMany(() => CategoryEntity, (cat) => cat.parent)
   children: CategoryEntity[];

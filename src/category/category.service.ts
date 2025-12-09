@@ -11,23 +11,23 @@ export class CategoryService {
   constructor(
     @InjectRepository(CategoryEntity)
     private categoryRepository: Repository<CategoryEntity>
-  ) {}
+  ) { }
 
-  async create(createDto: CreateCategoryDto, companyId: string): Promise<CategoryEntity  > {
-const category = this.categoryRepository.create({
-  name: createDto.name,
-  slug: createDto.slug
-    ? createDto.slug.toLowerCase()
-    : createDto.name.toLowerCase().replace(/\s+/g, "-"),
-  isActive: createDto.isActive ?? true,
-  photo: createDto.photo,
-  companyId,
-});
+  async create(createDto: CreateCategoryDto, companyId: string): Promise<CategoryEntity> {
+    const category = this.categoryRepository.create({
+      name: createDto.name,
+      slug: createDto.slug
+        ? createDto.slug.toLowerCase()
+        : createDto.name.toLowerCase().replace(/\s+/g, "-"),
+      isActive: createDto.isActive ?? true,
+      photo: createDto.photo,
+      companyId,
+    });
 
 
     if (createDto.parentId) {
-      const parent = await this.categoryRepository.findOne({ 
-        where: { id: createDto.parentId, companyId } 
+      const parent = await this.categoryRepository.findOne({
+        where: { id: createDto.parentId, companyId }
       });
       if (!parent) throw new NotFoundException("Parent category not found");
       category.parent = parent;
@@ -36,52 +36,63 @@ const category = this.categoryRepository.create({
     return this.categoryRepository.save(category);
   }
 
-async findAll(companyId: string): Promise<CategoryEntity[]> {
-  const categories = await this.categoryRepository.find({
-    where: { deletedAt: IsNull(), companyId}, // only non-deleted
-    relations: ["parent", "children"],
-  });
+  async findAll(companyId: string): Promise<CategoryEntity[]> {
+    const categories = await this.categoryRepository.find({
+      where: { deletedAt: IsNull(), companyId }, // only non-deleted
+      relations: ["parent", "children"],
+    });
 
-  // ensure slug is always string
-  return categories.map(cat => ({
-    ...cat,
-    slug: cat.slug ? cat.slug.toLowerCase() : cat.name.toLowerCase().replace(/\s+/g, "-"),
-  }));
-}
+    // ensure slug is always string
+    return categories.map(cat => ({
+      ...cat,
+      slug: cat.slug ? cat.slug.toLowerCase() : cat.name.toLowerCase().replace(/\s+/g, "-"),
+    }));
+  }
 
 
-async findOne(id: number, companyId: string): Promise<CategoryEntity> {
-  const category = await this.categoryRepository.findOne({
-    where: { id, deletedAt: IsNull(), companyId },
-    relations: ["parent", "children"],
-  });
+  async findOne(id: number, companyId: string): Promise<CategoryEntity> {
+    const category = await this.categoryRepository.findOne({
+      where: { id, deletedAt: IsNull(), companyId },
+      relations: ["parent", "children"],
+    });
 
-  if (!category) throw new NotFoundException("Category not found");
+    if (!category) throw new NotFoundException("Category not found");
 
-  // ensure slug is never undefined
-  category.slug = category.slug
-    ? category.slug.toLowerCase()
-    : category.name.toLowerCase().replace(/\s+/g, "-");
+    // ensure slug is never undefined
+    category.slug = category.slug
+      ? category.slug.toLowerCase()
+      : category.name.toLowerCase().replace(/\s+/g, "-");
 
-  return category;
-}
+    return category;
+  }
 
 
   async update(id: number, updateDto: UpdateCategoryDto, companyId: string): Promise<CategoryEntity> {
     const category = await this.findOne(id, companyId);
 
-    if (updateDto.name) category.name = updateDto.name;
-    if (updateDto.slug) category.slug = updateDto.slug;
-    if (updateDto.photo) category.photo = updateDto.photo;
+    if (updateDto.name !== undefined) category.name = updateDto.name;
+
+    if (updateDto.slug !== undefined || updateDto.name !== undefined) {
+      const normalizedSlug = updateDto.slug
+        ? updateDto.slug.toLowerCase()
+        : (updateDto.name ?? category.name).toLowerCase().replace(/\s+/g, "-");
+      category.slug = normalizedSlug;
+    }
+
+    if (updateDto.photo !== undefined) category.photo = updateDto.photo;
     if (updateDto.isActive !== undefined) category.isActive = updateDto.isActive;
 
-    if (updateDto.parentId) {
-      const parent = await this.categoryRepository.findOne({ 
-        where: { id: updateDto.parentId, companyId } 
-      });
-      if (!parent) throw new NotFoundException("Parent category not found");
-      if (parent.id === id) throw new BadRequestException("Category cannot be its own parent");
-      category.parent = parent;
+    if (updateDto.parentId !== undefined) {
+      if (updateDto.parentId === null) {
+        category.parent = null;
+      } else {
+        const parent = await this.categoryRepository.findOne({
+          where: { id: updateDto.parentId, companyId }
+        });
+        if (!parent) throw new NotFoundException("Parent category not found");
+        if (parent.id === id) throw new BadRequestException("Category cannot be its own parent");
+        category.parent = parent;
+      }
     }
 
     return this.categoryRepository.save(category);

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -10,7 +11,6 @@ import {
   Post,
   Put,
   Query,
-  UseGuards,
 } from '@nestjs/common';
 import { ProductService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -29,7 +29,16 @@ export class ProductController {
   constructor(private readonly productService: ProductService) { }
 
   @Post()
-  async create(@Body() createDto: CreateProductDto, @CompanyId() companyId: string) {
+  async create(
+    @Body() createDto: CreateProductDto,
+    @Query('companyId') companyIdFromQuery?: string,
+    @CompanyId() companyIdFromToken?: string,
+  ) {
+    const companyId = companyIdFromQuery || companyIdFromToken;
+    if (!companyId) {
+      throw new BadRequestException('companyId is required');
+    }
+
     const product = await this.productService.create(createDto, companyId);
     return { statusCode: HttpStatus.CREATED, message: 'Product created', data: product };
   }
@@ -79,7 +88,14 @@ export class ProductController {
   }
 
   @Patch(":id")
-  async update(@Param("id", ParseIntPipe) id: number, @Body() updateDto: UpdateProductDto, @CompanyId() companyId: string) {
+  async update(
+    @Param("id", ParseIntPipe) id: number,
+    @Body() updateDto: UpdateProductDto,
+    @Query('companyId') companyIdFromQuery?: string,
+    @CompanyId() companyIdFromToken?: string,
+  ) {
+    const companyId = companyIdFromQuery || companyIdFromToken;
+    if (!companyId) throw new BadRequestException('companyId is required');
     const product = await this.productService.update(id, updateDto, companyId);
     return { statusCode: HttpStatus.OK, message: "Product updated", data: product };
   }

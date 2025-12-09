@@ -9,7 +9,6 @@ import { User } from "src/users/entities/user.entity";
 import { OrdersitemEntity } from "src/ordersitem/entities/ordersitem.entity";
 import { PaymentsService } from "src/payments/payments.service";
 import { Inject } from "@nestjs/common";
-import { Transporter } from "nodemailer";
 
 
 @Injectable()
@@ -23,7 +22,8 @@ export class OrderService {
 
     private dataSource: DataSource,
     private readonly paymentsService: PaymentsService,
-    @Inject('MAILER_TRANSPORT') private readonly mailer: Transporter,
+    @Inject('MAILER_TRANSPORT')
+    private readonly mailer: { sendMail: (message: unknown) => Promise<{ id?: string }> },
   ) {}
 
   // Create order: will check stock and reserve (atomic transaction)
@@ -375,7 +375,7 @@ export class OrderService {
       });
 
       if (process.env.NODE_ENV !== "production") {
-        console.log("Low stock email sent:", info.messageId);
+        console.log("Low stock email sent:", info?.id);
       }
     } catch (e) {
       console.error("Failed to send low stock email:", e);

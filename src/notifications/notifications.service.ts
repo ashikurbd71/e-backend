@@ -2,7 +2,6 @@ import { Inject, Injectable, NotFoundException, ServiceUnavailableException } fr
 import { UsersService } from 'src/users/users.service';
 import { BroadcastEmailDto } from './dto/broadcast-email.dto';
 import { BroadcastSmsDto } from './dto/broadcast-sms.dto';
-import { Transporter } from 'nodemailer';
 import { User } from 'src/users/entities/user.entity';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
@@ -15,14 +14,18 @@ export class NotificationsService {
     constructor(
         private readonly usersService: UsersService,
         @Inject('MAILER_TRANSPORT')
-        private readonly mailer: Transporter,
+        private readonly mailer: { sendMail: (message: unknown) => Promise<{ id?: string }> },
         private readonly httpService: HttpService,
         private readonly requestContextService: RequestContextService,
     ) { }
 
     async sendEmailToCustomers(dto: BroadcastEmailDto) {
         const companyId = this.requestContextService.getCompanyId();
-        const recipients = (await this.usersService.findCustomers(companyId)).filter((user) => !!user.email);
+        const recipients = (
+            await this.usersService.findCustomers(companyId, {
+                ids: dto.customerIds,
+            })
+        ).filter((user) => !!user.email);
 
         if (!recipients.length) {
             throw new NotFoundException('No customers with a valid email address were found');
@@ -31,15 +34,16 @@ export class NotificationsService {
         const fromAddress = process.env.SMTP_FROM ?? process.env.SMTP_USER;
 
         const results = await Promise.allSettled(
-            recipients.map((user) =>
-                this.mailer.sendMail({
+            recipients.map((user) => {
+                const personalizedBody = dto.body.replace(/{{\s*name\s*}}/gi, user.name ?? 'there');
+                return this.mailer.sendMail({
                     from: fromAddress,
                     to: user.email,
                     subject: dto.subject,
-                    text: dto.body,
+                    text: personalizedBody,
                     html: dto.html,
-                }),
-            ),
+                });
+            }),
         );
 
         return this.buildSummary('email', recipients, results);

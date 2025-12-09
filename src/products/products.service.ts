@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { IsNull, Repository, In } from "typeorm";
 import { ProductEntity } from "src/products/entities/product.entity";
@@ -21,6 +21,10 @@ export class ProductService {
   ) { }
 
   async create(createDto: CreateProductDto, companyId: string): Promise<ProductEntity> {
+    if (!companyId) {
+      throw new BadRequestException("CompanyId is required");
+    }
+    
     const category = await this.categoryRepository.findOne({
       where: { id: createDto.categoryId, companyId }
     });

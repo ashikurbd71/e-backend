@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsInt, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class BroadcastEmailDto {
   @IsString()
@@ -12,5 +12,10 @@ export class BroadcastEmailDto {
   @IsOptional()
   @IsString()
   html?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsInt({ each: true })
+  customerIds?: number[];
 }
 
