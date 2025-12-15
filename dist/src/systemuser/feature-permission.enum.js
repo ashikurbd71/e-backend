@@ -1,0 +1,32 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.FeaturePermission = void 0;
+var FeaturePermission;
+(function (FeaturePermission) {
+    FeaturePermission["PRODUCTS"] = "PRODUCTS";
+    FeaturePermission["ORDERS"] = "ORDERS";
+    FeaturePermission["CATEGORY"] = "CATEGORY";
+    FeaturePermission["CUSTOMERS"] = "CUSTOMERS";
+    FeaturePermission["REPORTS"] = "REPORTS";
+    FeaturePermission["INVENTORY"] = "INVENTORY";
+    FeaturePermission["SETTINGS"] = "SETTINGS";
+    FeaturePermission["STAFF"] = "STAFF";
+    FeaturePermission["SMS_CONFIGURATION"] = "SMS_CONFIGURATION";
+    FeaturePermission["EMAIL_CONFIGURATION"] = "EMAIL_CONFIGURATION";
+    FeaturePermission["PAYMENT_METHODS"] = "PAYMENT_METHODS";
+    FeaturePermission["PAYMENT_GATEWAYS"] = "PAYMENT_GATEWAYS";
+    FeaturePermission["PAYMENT_STATUS"] = "PAYMENT_STATUS";
+    FeaturePermission["PAYMENT_TRANSACTIONS"] = "PAYMENT_TRANSACTIONS";
+    FeaturePermission["PROMOCODES"] = "PROMOCODES";
+    FeaturePermission["HELP"] = "HELP";
+    FeaturePermission["BANNERS"] = "BANNERS";
+    FeaturePermission["FRUAD_CHECKER"] = "FRUAD_CHECKER";
+    FeaturePermission["MANAGE_USERS"] = "MANAGE_USERS";
+    FeaturePermission["DASHBOARD"] = "DASHBOARD";
+    FeaturePermission["REVENUE"] = "REVENUE";
+    FeaturePermission["NEW_CUSTOMERS"] = "NEW_CUSTOMERS";
+    FeaturePermission["REPEAT_PURCHASE_RATE"] = "REPEAT_PURCHASE_RATE";
+    FeaturePermission["AVERAGE_ORDER_VALUE"] = "AVERAGE_ORDER_VALUE";
+    FeaturePermission["STATS"] = "STATS";
+})(FeaturePermission || (exports.FeaturePermission = FeaturePermission = {}));
+//# sourceMappingURL=feature-permission.enum.js.map
