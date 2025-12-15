@@ -10,7 +10,7 @@ export class FlashSellDto {
 
   @IsDateString()
   flashSellEndTime: string;
-
+  // fdfd
   @IsOptional()
   @IsNumber()
   flashSellPrice?: number;
