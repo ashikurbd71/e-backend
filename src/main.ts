@@ -1,6 +1,9 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { NestExpressApplication } from '@nestjs/platform-express';
+
+import 'tsconfig-paths/register';
+
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 let cachedApp: NestExpressApplication;
