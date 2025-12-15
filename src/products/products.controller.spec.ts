@@ -1,17 +1,25 @@
+import { beforeEach, describe, expect, it } from '@jest/globals';
 import { Test, TestingModule } from '@nestjs/testing';
-import { ProductsController } from './products.controller';
-import { ProductsService } from './products.service';
+import { ProductController } from './products.controller';
+import { ProductService } from './products.service';
 
 describe('ProductsController', () => {
-  let controller: ProductsController;
+  let controller: ProductController;
 
   beforeEach(async () => {
+    const productServiceMock = {};
+
     const module: TestingModule = await Test.createTestingModule({
-      controllers: [ProductsController],
-      providers: [ProductsService],
+      controllers: [ProductController],
+      providers: [
+        {
+          provide: ProductService,
+          useValue: productServiceMock,
+        },
+      ],
     }).compile();
 
-    controller = module.get<ProductsController>(ProductsController);
+    controller = module.get<ProductController>(ProductController);
   });
 
   it('should be defined', () => {
