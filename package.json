@@ -86,8 +86,5 @@
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
-  },
-  "overrides": {
-    "nestjs-mapped-types": "npm:@nestjs/mapped-types@3.0.0"
   }
 }
