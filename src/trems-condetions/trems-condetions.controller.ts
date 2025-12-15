@@ -2,9 +2,9 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, ParseIntP
 import { TremsCondetionsService } from './trems-condetions.service';
 import { CreateTremsCondetionDto } from './dto/create-trems-condetion.dto';
 import { UpdateTremsCondetionDto } from './dto/update-trems-condetion.dto';
-import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
-import { CompanyIdGuard } from 'src/common/guards/company-id.guard';
-import { CompanyId } from 'src/common/decorators/company-id.decorator';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { CompanyIdGuard } from '../common/guards/company-id.guard';
+import { CompanyId } from '../common/decorators/company-id.decorator';
 
 @Controller('trems-condetions')
 // @UseGuards(JwtAuthGuard, CompanyIdGuard)

@@ -2,9 +2,9 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, Query,
 import { CartproductsService } from './cartproducts.service';
 import { CreateCartproductDto } from './dto/create-cartproduct.dto';
 import { UpdateCartproductDto } from './dto/update-cartproduct.dto';
-import { CompanyId } from 'src/common/decorators/company-id.decorator';
-import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
-import { CompanyIdGuard } from 'src/common/guards/company-id.guard';
+import { CompanyId } from '../common/decorators/company-id.decorator';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { CompanyIdGuard } from '../common/guards/company-id.guard';
 
 @Controller('cartproducts')
 export class CartproductsController {

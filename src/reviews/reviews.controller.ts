@@ -2,10 +2,10 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, ParseIntP
 import { ReviewsService } from './reviews.service';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { UpdateReviewDto } from './dto/update-review.dto';
-import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
-import { CompanyIdGuard } from 'src/common/guards/company-id.guard';
-import { CompanyId } from 'src/common/decorators/company-id.decorator';
-import { UserId } from 'src/common/decorators/user-id.decorator';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { CompanyIdGuard } from '../common/guards/company-id.guard';
+import { CompanyId } from '../common/decorators/company-id.decorator';
+import { UserId } from '../common/decorators/user-id.decorator';
 
 @Controller('reviews')
 export class ReviewsController {

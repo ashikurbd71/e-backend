@@ -2,9 +2,9 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, Query,
 import { InventoryService } from './inventory.service';
 import { CreateInventoryDto } from './dto/create-inventory.dto';
 import { UpdateInventoryDto } from './dto/update-inventory.dto';
-import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
-import { CompanyIdGuard } from 'src/common/guards/company-id.guard';
-import { CompanyId } from 'src/common/decorators/company-id.decorator';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { CompanyIdGuard } from '../common/guards/company-id.guard';
+import { CompanyId } from '../common/decorators/company-id.decorator';
 
 @Controller('inventory')
 @UseGuards(JwtAuthGuard, CompanyIdGuard)

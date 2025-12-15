@@ -16,12 +16,12 @@ import { ProductService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { FlashSellDto } from './dto/flash-sell.dto';
-import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
-import { PermissionGuard } from 'src/common/guards/permission.guard';
-import { Permission } from 'src/common/decorators/permission.decorator';
-import { FeaturePermission } from 'src/systemuser/feature-permission.enum';
-import { CompanyIdGuard } from 'src/common/guards/company-id.guard';
-import { CompanyId } from 'src/common/decorators/company-id.decorator';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { PermissionGuard } from '../common/guards/permission.guard';
+import { Permission } from '../common/decorators/permission.decorator';
+import { FeaturePermission } from '../systemuser/feature-permission.enum';
+import { CompanyIdGuard } from '../common/guards/company-id.guard';
+import { CompanyId } from '../common/decorators/company-id.decorator';
 
 @Controller('products')
 // @UseGuards(JwtAuthGuard, CompanyIdGu)

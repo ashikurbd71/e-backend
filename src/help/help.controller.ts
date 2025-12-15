@@ -2,9 +2,9 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, ParseIntP
 import { HelpService } from './help.service';
 import { CreateHelpDto } from './dto/create-help.dto';
 import { UpdateHelpDto } from './dto/update-help.dto';
-import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
-import { CompanyIdGuard } from 'src/common/guards/company-id.guard';
-import { CompanyId } from 'src/common/decorators/company-id.decorator';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { CompanyIdGuard } from '../common/guards/company-id.guard';
+import { CompanyId } from '../common/decorators/company-id.decorator';
 
 @Controller('help')
 @UseGuards(JwtAuthGuard, CompanyIdGuard)
