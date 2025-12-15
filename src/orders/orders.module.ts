@@ -4,10 +4,10 @@ import { OrderController } from './orders.controller';
 import { PaymentsModule } from '../payments/payments.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Order } from './entities/order.entity';
-import { OrdersitemEntity } from 'src/ordersitem/entities/ordersitem.entity';
-import { ProductEntity } from 'src/products/entities/product.entity';
-import { InventoryEntity } from 'src/inventory/entities/inventory.entity';
-import { User } from 'src/users/entities/user.entity';
+import { OrdersitemEntity } from '../ordersitem/entities/ordersitem.entity';
+import { ProductEntity } from '../products/entities/product.entity';
+import { InventoryEntity } from '../inventory/entities/inventory.entity';
+import { User } from '../users/entities/user.entity';
 
 
 @Module({
@@ -27,4 +27,4 @@ import { User } from 'src/users/entities/user.entity';
   providers: [OrderService],
   exports: [OrderService],
 })
-export class OrdersModule {}
+export class OrdersModule { }
