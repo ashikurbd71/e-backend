@@ -1,24 +1,15 @@
 {
   "compilerOptions": {
     "module": "commonjs",
-    "target": "ES2023",
     "declaration": true,
     "removeComments": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
+    "target": "ES2023",
     "sourceMap": true,
     "outDir": "./dist",
-    "rootDir": "./src",
-    "baseUrl": ".",
-    "paths": {
-      "src/*": [
-        "src/*"
-      ],
-      "api/*": [
-        "api/*"
-      ]
-    },
+    "baseUrl": "./src",
     "incremental": true,
     "skipLibCheck": true,
     "strictNullChecks": true,
@@ -30,9 +21,5 @@
   "include": [
     "src/**/*",
     "api/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist"
   ]
 }
