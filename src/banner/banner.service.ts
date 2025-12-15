@@ -13,12 +13,15 @@ export class BannerService {
   ) { }
 
   async create(dto: CreateBannerDto, companyId: string): Promise<BannerEntity> {
-    if (!companyId) {
-      throw new NotFoundException('CompanyId is required');
-    }
     const banner = this.bannerRepository.create({
-      ...dto,
-      companyId: companyId,
+      title: dto.title,
+      subtitle: dto.subtitle,
+      imageUrl: dto.imageUrl,
+      buttonText: dto.buttonText,
+      buttonLink: dto.buttonLink,
+      isActive: dto.isActive ?? true,
+      order: dto.order ?? 0,
+      companyId,
     });
     return this.bannerRepository.save(banner);
   }
