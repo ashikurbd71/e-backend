@@ -1,27 +1,40 @@
-import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  app.enableCors({
-    origin: ['http://localhost:3000', 'http://localhost:5173'],
-    credentials: true,
-    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-  });
+let cachedApp: NestExpressApplication;
 
-  // Swagger setup
-  const config = new DocumentBuilder()
-    .setTitle('E-Commerce API')
-    .setDescription('E-Commerce API documentation')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .build();
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+async function bootstrap(): Promise<NestExpressApplication> {
+    if (!cachedApp) {
+        const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+            logger: ['error', 'warn'],
+        });
 
-  await app.listen(process.env.PORT ?? 8000);
+        // Open CORS: allow all origins
+        app.enableCors({
+            origin: '*',
+            methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+            credentials: false, // wildcard origin হলে true রাখা যাবে না
+        });
+
+        await app.init();
+        cachedApp = app;
+    }
+    return cachedApp;
 }
-bootstrap();
+
+if (!process.env.VERCEL) {
+    async function startLocalServer() {
+        const app = await bootstrap(); 
+        const port = process.env.PORT || 5000;
+        await app.listen(port);
+        console.log(`🚀 Server running on http://localhost:${port}`);
+    }
+    startLocalServer();
+}
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+    const app = await bootstrap();
+    app.getHttpAdapter().getInstance()(req, res);
+}
