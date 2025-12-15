@@ -24,7 +24,7 @@ import { CompanyIdGuard } from 'src/common/guards/company-id.guard';
 import { CompanyId } from 'src/common/decorators/company-id.decorator';
 
 @Controller('products')
-// @UseGuards(JwtAuthGuard, CompanyIdGuard)
+// @UseGuards(JwtAuthGuard, CompanyIdGu)
 export class ProductController {
   constructor(private readonly productService: ProductService) { }
 
