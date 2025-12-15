@@ -103,7 +103,7 @@ export class ProductController {
   @Delete(":id")
   async softDelete(@Param("id", ParseIntPipe) id: number, @CompanyId() companyId: string) {
     await this.productService.softDelete(id, companyId);
-    return { statusCode: HttpStatus.OK, message: "Product soft deleted" };
+    return { statusCode: HttpStatus.OK, message: "Product soft delet" };
   }
 
   @Patch(":id/toggle-active")
