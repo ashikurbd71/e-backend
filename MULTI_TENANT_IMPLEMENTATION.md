@@ -74,8 +74,8 @@ async findAll(): Promise<Entity[]> {
 
 // After
 async findAll(companyId: string): Promise<Entity[]> {
-  return this.repo.find({ 
-    where: { companyId } 
+  return this.repo.find({
+    where: { companyId }
   });
 }
 ```
@@ -100,8 +100,8 @@ Always filter by `companyId`:
 
 ```typescript
 async findOne(id: number, companyId: string): Promise<Entity> {
-  const entity = await this.repo.findOne({ 
-    where: { id, companyId } 
+  const entity = await this.repo.findOne({
+    where: { id, companyId }
   });
   if (!entity) throw new NotFoundException('Entity not found');
   return entity;
@@ -144,7 +144,10 @@ export class ResourceController {
   }
 
   @Get(':id')
-  async findOne(@Param('id', ParseIntPipe) id: number, @CompanyId() companyId: string) {
+  async findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @CompanyId() companyId: string,
+  ) {
     return this.service.findOne(id, companyId);
   }
 }
@@ -156,13 +159,13 @@ When querying related entities, always filter by companyId:
 
 ```typescript
 // Before
-const product = await this.productRepo.findOne({ 
-  where: { id: productId } 
+const product = await this.productRepo.findOne({
+  where: { id: productId },
 });
 
 // After
-const product = await this.productRepo.findOne({ 
-  where: { id: productId, companyId } 
+const product = await this.productRepo.findOne({
+  where: { id: productId, companyId },
 });
 ```
 
@@ -230,18 +233,21 @@ async update(id: number, updateInventoryDto: UpdateInventoryDto, companyId: stri
 After implementing, you'll need to:
 
 1. **Add companyId column to existing tables** (if you have existing data):
+
    ```sql
    ALTER TABLE tbl_products ADD COLUMN "companyId" VARCHAR NOT NULL DEFAULT 'COMP-000000';
    -- Repeat for all tables
    ```
 
 2. **Backfill companyId for existing SystemUsers**:
+
    ```sql
    -- Generate companyIds for existing users
    UPDATE system_users SET "companyId" = 'COMP-' || LPAD(id::text, 6, '0') WHERE "companyId" IS NULL;
    ```
 
 3. **Backfill companyId for all other entities** (assign based on creator or default):
+
    ```sql
    -- Example: Assign products to first system user's companyId
    UPDATE tbl_products SET "companyId" = (SELECT "companyId" FROM system_users LIMIT 1);
@@ -277,5 +283,3 @@ After implementing, you'll need to:
 3. Run database migrations
 4. Test multi-tenant isolation
 5. Update API documentation
-
-
