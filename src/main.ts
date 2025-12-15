@@ -2,8 +2,6 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { NestExpressApplication } from '@nestjs/platform-express';
 
-import 'tsconfig-paths/register';
-
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 let cachedApp: NestExpressApplication;
@@ -29,7 +27,7 @@ async function bootstrap(): Promise<NestExpressApplication> {
 
 if (!process.env.VERCEL) {
     async function startLocalServer() {
-        const app = await bootstrap(); 
+        const app = await bootstrap();
         const port = process.env.PORT || 5000;
         await app.listen(port);
         console.log(`🚀 Server running on http://localhost:${port}`);
