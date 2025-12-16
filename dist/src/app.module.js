@@ -48,7 +48,7 @@ exports.AppModule = AppModule = __decorate([
             }),
             typeorm_1.TypeOrmModule.forRoot({
                 type: 'postgres',
-                url: process.env.DATABASE_URL,
+                url: process.env.DATABASE_URL || 'postgresql://neondb_owner:npg_JlI1h9YCKmjb@ep-proud-hall-a4mak280-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require',
                 synchronize: true,
                 logging: true,
                 ssl: {
